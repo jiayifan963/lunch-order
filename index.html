@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>班級點餐系統-密碼保護版</title>
+    <title>全校雲端點餐系統</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root { --primary: #007bff; --success: #28a745; --danger: #dc3545; --bg: #f4f7f9; }
@@ -18,6 +18,7 @@
         .stu-btn { padding: 12px 5px; border-radius: 12px; border: 1px solid #e2e8f0; background: white; text-align: center; cursor: pointer; transition: 0.2s; min-height: 60px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .stu-btn.selected { border: 2px solid var(--primary); background: #e7f3ff; }
         .stu-btn.done { background: #f0fff4; border-color: #9ae6b4; color: #276749; cursor: default; }
+        .stu-btn b { font-size: 15px; }
         .stu-btn small { font-size: 10px; margin-top: 2px; }
         #foodSection { display: none; border-top: 2px dashed #eee; margin-top: 20px; padding-top: 20px; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
@@ -34,13 +35,13 @@
 
 <div class="container">
     <div class="card">
-        <h2 style="text-align:center; margin-top:0;">🍱 班級雲端點餐</h2>
+        <h2 style="text-align:center; margin-top:0;">🍱 全校雲端點餐</h2>
         <div class="info-box">
             <div class="day-label" id="dateDisplay">載入中...</div>
         </div>
         
         <select id="classSelect" onchange="renderStudents()">
-            <option value="">-- 請選擇班級 --</option>
+            <option value="">-- 請選擇年級 --</option>
         </select>
 
         <div id="studentGrid" class="student-grid"></div>
@@ -48,12 +49,12 @@
         <div id="foodSection">
             <label id="foodTitle" style="display:block; margin-bottom:15px; font-weight:bold; color:var(--primary); text-align:center;"></label>
             <div id="foodOptions" class="food-grid"></div>
-            <button onclick="cancelSelect()" style="width:100%; background:none; border:none; color:#999; margin-top:15px;">✕ 取消選擇</button>
+            <button onclick="cancelSelect()" style="width:100%; background:none; border:none; color:#999; margin-top:15px; cursor:pointer;">✕ 取消選擇</button>
         </div>
 
         <div class="btn-footer">
-            <button class="btn-minor" onclick="toggleAdmin()">⚙️ 設定名單與菜單</button>
-            <button class="btn-minor" onclick="exportToExcel()">📥 下載報表</button>
+            <button class="btn-minor" onclick="toggleAdmin()">⚙️ 管理員面板</button>
+            <button class="btn-minor" onclick="exportToExcel()">📥 下載今日報表</button>
         </div>
 
         <div id="adminPanel">
@@ -61,11 +62,11 @@
             <label>修改登入密碼：</label>
             <input type="text" id="adminPwdConfig" style="width:100%; padding:8px; margin-bottom:15px; border-radius:5px; border:1px solid #ccc;">
             <hr>
-            <h4>每週菜單設定</h4>
+            <h4>每週固定菜單設定</h4>
             <div id="menuEditor"></div>
             <hr>
             <label>學生名單 (格式：班級,姓名)</label>
-            <textarea id="inputStudentList" style="width:100%; height:100px; border-radius:8px; border:1px solid #ccc; padding:10px;"></textarea>
+            <textarea id="inputStudentList" style="width:100%; height:100px; border-radius:8px; border:1px solid #ccc; padding:10px; font-size: 12px;"></textarea>
             <button onclick="saveAllSettings()" style="width:100%; padding:12px; background:#444; color:white; border:none; border-radius:10px; margin-top:10px; font-weight:bold;">💾 保存設定</button>
         </div>
     </div>
@@ -74,18 +75,27 @@
 <script>
     var scriptUrl = "https://script.google.com/macros/s/AKfycbwnqViI90bPvItzpm7XiEzDLHa3J1uBbS77FDU4HKoxlCh6WDUFMz_yUTF4TNgwiyt-Tg/exec";
 
-    // 密碼與資料初始化
-    var adminPassword = localStorage.getItem('cls_admin_pwd') || "1234"; // 預設密碼 1234
+    var adminPassword = localStorage.getItem('cls_admin_pwd') || "1234";
+
+    var defaultStudents = [
+        {className:"一年級",name:"林鈺潔"},{className:"一年級",name:"趙偉哲"},{className:"一年級",name:"林袖駖"},{className:"一年級",name:"林宜靖"},{className:"一年級",name:"許思燦"},{className:"一年級",name:"許語芯"},{className:"一年級",name:"許心彤"},{className:"一年級",name:"雷喬勛"},{className:"一年級",name:"蘇薇心"},{className:"一年級",name:"吳妍熙"},{className:"一年級",name:"陳惠苡"},{className:"一年級",name:"陳佑陵"},{className:"一年級",name:"雷喬甯"},{className:"一年級",name:"吳謹彤"},{className:"一年級",name:"許愷峻"},
+        {className:"二年級",name:"任彥輔"},{className:"二年級",name:"吳承恩"},{className:"二年級",name:"李依馨"},{className:"二年級",name:"阮妍芯"},{className:"二年級",name:"林子婼"},{className:"二年級",name:"林佩伶"},{className:"二年級",name:"林嘉豪"},{className:"二年級",name:"許昀紫"},{className:"二年級",name:"許芷媛"},{className:"二年級",name:"許倉源"},{className:"二年級",name:"許媛甄"},{className:"二年級",name:"許裴芸"},{className:"二年級",name:"程宥熙"},{className:"二年級",name:"趙宥程"},{className:"二年級",name:"鄭芯喬"},
+        {className:"三年級",name:"才琇羽"},{className:"三年級",name:"王以琳"},{className:"三年級",name:"江昕瞳"},{className:"三年級",name:"吳晨晞"},{className:"三年級",name:"林宜薇"},{className:"三年級",name:"林欣毅"},{className:"三年級",name:"林恩睿"},{className:"三年級",name:"林翊城"},{className:"三年級",name:"林樂"},{className:"三年級",name:"許阡函"},{className:"三年級",name:"許芷嫣"},{className:"三年級",name:"許峮銧"},{className:"三年級",name:"許峻瑋"},{className:"三年級",name:"黃筠婷"},{className:"三年級",name:"雷允揚"},
+        {className:"四年級",name:"周安佑"},{className:"四年級",name:"林禾畯"},{className:"四年級",name:"林靖宸"},{className:"四年級",name:"姜彥辰"},{className:"四年級",name:"許思晨"},{className:"四年級",name:"許柏翔"},{className:"四年級",name:"許珉豪"},{className:"四年級",name:"許峮萌"},{className:"四年級",name:"許惟智"},{className:"四年級",name:"許喬愉"},{className:"四年級",name:"許詠鈞"},{className:"四年級",name:"許愷祐"},{className:"四年級",name:"許澤安"},{className:"四年級",name:"陳楷翔"},{className:"四年級",name:"游淨淳"},{className:"四年級",name:"羅顏俊"},
+        {className:"五年級",name:"吳秉叡"},{className:"五年級",name:"林子祺"},{className:"五年級",name:"林安平"},{className:"五年級",name:"林芮安"},{className:"五年級",name:"林勁丞"},{className:"五年級",name:"林科延"},{className:"五年級",name:"林祐安"},{className:"五年級",name:"洪淮銨"},{className:"五年級",name:"許昕瑜"},{className:"五年級",name:"許雅鈊"},{className:"五年級",name:"許維琳"},{className:"五年級",name:"黃羽萱"},{className:"五年級",name:"鄭凱宏"},{className:"五年級",name:"謝文軒"},{className:"五年級",name:"蘇薇安"},
+        {className:"六年級",name:"吳嘉怡"},{className:"六年級",name:"周苡婷"},{className:"六年級",name:"林辰鑫"},{className:"六年級",name:"林夏彤"},{className:"六年級",name:"林雅芃"},{className:"六年級",name:"許岒澴"},{className:"六年級",name:"許郡宜"},{className:"六年級",name:"許閔哲"},{className:"六年級",name:"黃宥心"},{className:"六年級",name:"雷棨鋐"},{className:"六年級",name:"謝文硯"}
+    ];
+
     var defaultWeeklyMenu = {
-        1: [{n:"套餐A",p:100}, {n:"套餐B",p:100}, {n:"套餐C",p:100}],
+        1: [{n:"炒麵＋綜合湯",p:70}, {n:"滷肉飯＋綜合湯",p:70}, {n:"米糕＋豆腐湯",p:60}],
         2: [{n:"套餐A",p:100}, {n:"套餐B",p:100}, {n:"套餐C",p:100}],
         3: [{n:"套餐A",p:100}, {n:"套餐B",p:100}, {n:"套餐C",p:100}],
         4: [{n:"套餐A",p:100}, {n:"套餐B",p:100}, {n:"套餐C",p:100}],
         5: [{n:"套餐A",p:100}, {n:"套餐B",p:100}, {n:"套餐C",p:100}]
     };
 
+    var savedStudents = JSON.parse(localStorage.getItem('cls_students')) || defaultStudents;
     var weeklyMenu = JSON.parse(localStorage.getItem('cls_weekly_menu')) || defaultWeeklyMenu;
-    var savedStudents = JSON.parse(localStorage.getItem('cls_students')) || [];
     var historyLog = JSON.parse(localStorage.getItem('cls_history')) || [];
     var currentStu = null;
 
@@ -97,7 +107,6 @@
         var classes = [...new Set(savedStudents.map(s => s.className))];
         var sel = document.getElementById('classSelect');
         classes.forEach(c => { var opt = new Option(c, c); sel.add(opt); });
-
         initAdminUI();
     };
 
@@ -105,55 +114,18 @@
         var p = document.getElementById('adminPanel');
         if (p.style.display !== 'block') {
             var input = prompt("請輸入管理員密碼：");
-            if (input === adminPassword) {
-                p.style.display = 'block';
-                p.scrollIntoView({ behavior: 'smooth' });
-            } else if (input !== null) {
-                alert("密碼錯誤！");
-            }
-        } else {
-            p.style.display = 'none';
-        }
+            if (input === adminPassword) { p.style.display = 'block'; }
+            else if (input !== null) { alert("密碼錯誤！"); }
+        } else { p.style.display = 'none'; }
     }
 
-    function saveAllSettings() {
-        // 儲存新密碼
-        var newPwd = document.getElementById('adminPwdConfig').value;
-        if(newPwd) {
-            adminPassword = newPwd;
-            localStorage.setItem('cls_admin_pwd', newPwd);
-        }
-
-        // 儲存菜單
-        for(var i=1; i<=5; i++) {
-            for(var j=0; j<3; j++) {
-                weeklyMenu[i][j] = {
-                    n: document.getElementById(`m_n_${i}_${j}`).value,
-                    p: parseInt(document.getElementById(`m_p_${i}_${j}`).value) || 0
-                };
-            }
-        }
-        localStorage.setItem('cls_weekly_menu', JSON.stringify(weeklyMenu));
-        
-        // 儲存名單
-        var raw = document.getElementById('inputStudentList').value;
-        savedStudents = raw.split('\n').filter(l => l.includes(',')).map(l => {
-            var p = l.split(',');
-            return { className: p[0].trim(), name: p[1].trim() };
-        });
-        localStorage.setItem('cls_students', JSON.stringify(savedStudents));
-        
-        alert("所有設定已安全儲存！");
-        location.reload();
-    }
-
-    // --- 其他邏輯保持不變 ---
     function renderStudents() {
         var cls = document.getElementById('classSelect').value;
         var grid = document.getElementById('studentGrid');
         grid.innerHTML = '';
         document.getElementById('foodSection').style.display = 'none';
         if(!cls) return;
+
         savedStudents.filter(s => s.className === cls).forEach(stu => {
             var order = historyLog.find(h => h.name === stu.name && h.cls === stu.className);
             var div = document.createElement('div');
@@ -205,11 +177,9 @@
         for(var i=1; i<=5; i++) {
             html += `<div class="week-config-row"><b>星期${days[i]}</b>`;
             for(var j=0; j<3; j++) {
-                var valN = weeklyMenu[i][j] ? weeklyMenu[i][j].n : "";
-                var valP = weeklyMenu[i][j] ? weeklyMenu[i][j].p : "";
                 html += `<div style="display:flex; gap:5px; margin-bottom:5px;">
-                    <input type="text" id="m_n_${i}_${j}" value="${valN}" placeholder="餐點" style="flex:2; padding:5px; border-radius:5px; border:1px solid #ccc;">
-                    <input type="number" id="m_p_${i}_${j}" value="${valP}" placeholder="價格" style="flex:1; padding:5px; border-radius:5px; border:1px solid #ccc;">
+                    <input type="text" id="m_n_${i}_${j}" value="${weeklyMenu[i][j].n}" placeholder="餐點" style="flex:2; padding:5px; border-radius:5px; border:1px solid #ccc;">
+                    <input type="number" id="m_p_${i}_${j}" value="${weeklyMenu[i][j].p}" placeholder="價格" style="flex:1; padding:5px; border-radius:5px; border:1px solid #ccc;">
                 </div>`;
             }
             html += `</div>`;
@@ -219,13 +189,33 @@
         document.getElementById('adminPwdConfig').value = adminPassword;
     }
 
+    function saveAllSettings() {
+        var newPwd = document.getElementById('adminPwdConfig').value;
+        if(newPwd) { adminPassword = newPwd; localStorage.setItem('cls_admin_pwd', newPwd); }
+        for(var i=1; i<=5; i++) {
+            for(var j=0; j<3; j++) {
+                weeklyMenu[i][j] = { n: document.getElementById(`m_n_${i}_${j}`).value, p: parseInt(document.getElementById(`m_p_${i}_${j}`).value) || 0 };
+            }
+        }
+        localStorage.setItem('cls_weekly_menu', JSON.stringify(weeklyMenu));
+        var raw = document.getElementById('inputStudentList').value;
+        savedStudents = raw.split('\n').filter(l => l.includes(',')).map(l => {
+            var p = l.split(',');
+            return { className: p[0].trim(), name: p[1].trim() };
+        });
+        localStorage.setItem('cls_students', JSON.stringify(savedStudents));
+        alert("設定已儲存！");
+        location.reload();
+    }
+
     function exportToExcel() {
-        var data = [["日期", "班級", "姓名", "餐點", "金額"]];
+        if(historyLog.length === 0) { alert("今日尚無點餐資料。"); return; }
+        var data = [["日期", "年級", "姓名", "餐點", "金額"]];
         historyLog.forEach(o => data.push([o.date, o.cls, o.name, o.item, o.price]));
         var ws = XLSX.utils.aoa_to_sheet(data);
         var wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "點餐記錄");
-        XLSX.writeFile(wb, "點餐報表.xlsx");
+        XLSX.writeFile(wb, "點餐報表_" + new Date().toLocaleDateString() + ".xlsx");
     }
 </script>
 </body>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全校雲端點餐系統-老師名單更新</title>
+    <title>全校雲端點餐系統-修正版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root { --primary: #007bff; --success: #28a745; --danger: #dc3545; --bg: #f4f7f9; }
@@ -12,7 +12,7 @@
         .container { width: 100%; max-width: 600px; margin: 0 auto; }
         .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); margin-bottom: 20px; }
         .info-box { text-align: center; background: #e9ecef; padding: 12px; border-radius: 15px; margin-bottom: 10px; border: 1px solid #dee2e6; }
-        .search-box { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 15px; font-size: 16px; width: 100%; box-sizing: border-box; }
+        .search-box { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 15px; font-size: 16px; }
         select { width: 100%; padding: 15px; border: 2px solid #edf2f7; border-radius: 12px; font-size: 16px; margin-bottom: 15px; appearance: none; background-color: white; }
         .student-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .stu-btn { padding: 12px 5px; border-radius: 12px; border: 1px solid #e2e8f0; background: white; text-align: center; cursor: pointer; transition: 0.2s; min-height: 60px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
@@ -24,7 +24,6 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .food-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
         .food-btn { padding: 18px; border-radius: 15px; border: none; background: var(--primary); color: white; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .no-order-btn { background: white; color: var(--danger); border: 2px solid var(--danger); }
         .btn-footer { display: flex; justify-content: space-between; margin-top: 30px; }
         .btn-minor { background: none; border: none; color: #a0aec0; text-decoration: underline; cursor: pointer; font-size: 13px; }
         #adminPanel { display: none; background: #f8f9fa; padding: 15px; border-radius: 15px; margin-top: 15px; border: 1px solid #ddd; }
@@ -35,50 +34,45 @@
 <div class="container">
     <div class="card">
         <h2 style="text-align:center; margin-top:0;">🍱 全校雲端點餐系統</h2>
-        <div class="info-box"><div class="day-label" id="dateDisplay">載入中...</div></div>
+        <div class="info-box"><div id="dateDisplay">載入中...</div></div>
         
         <select id="classSelect" onchange="renderStudents()">
-            <option value="">-- 請選擇年級或老師 --</option>
+            <option value="">-- 請選擇分類 --</option>
         </select>
 
-        <input type="text" id="nameSearch" class="search-box" placeholder="🔍 輸入關鍵字(如:老師 或 姓名)..." oninput="renderStudents()">
+        <input type="text" id="nameSearch" class="search-box" style="width:100%" placeholder="🔍 輸入老師或學生姓名..." oninput="renderStudents()">
 
         <div id="studentGrid" class="student-grid"></div>
 
         <div id="foodSection">
             <label id="foodTitle" style="display:block; margin-bottom:15px; font-weight:bold; color:var(--primary); text-align:center;"></label>
             <div id="foodOptions" class="food-grid"></div>
-            <button onclick="submitOrder({n:'不訂餐', p:0})" class="food-btn no-order-btn" style="margin-top:10px;">🚫 今日不訂餐</button>
-            <button onclick="cancelSelect()" style="width:100%; background:none; border:none; color:#999; margin-top:15px; cursor:pointer;">✕ 取消選擇</button>
+            <button onclick="submitOrder({n:'不訂餐', p:0})" class="food-btn" style="background:white; color:var(--danger); border:2px solid var(--danger); margin-top:10px;">🚫 今日不訂餐</button>
+            <button onclick="cancelSelect()" style="width:100%; background:none; border:none; color:#999; margin-top:15px; cursor:pointer;">✕ 取消</button>
         </div>
 
         <div class="btn-footer">
-            <button class="btn-minor" onclick="toggleAdmin()">⚙️ 管理員面板</button>
-            <button class="btn-minor" onclick="exportToExcel()">📥 下載 Excel</button>
+            <button class="btn-minor" onclick="toggleAdmin()">⚙️ 管理</button>
+            <button class="btn-minor" onclick="exportToExcel()">📥 Excel</button>
         </div>
 
         <div id="adminPanel">
-            <h3>系統管理</h3>
-            <label>密碼：</label>
-            <input type="text" id="adminPwdConfig" style="width:100%; padding:8px; margin-bottom:15px; border-radius:5px; border:1px solid #ccc;">
+            <button onclick="resetSystem()" style="background:var(--danger); color:white; border:none; padding:5px 10px; border-radius:5px; float:right;">🧨 重置系統緩存</button>
+            <h3>系統設定</h3>
             <hr>
-            <h4>每週菜單設定</h4>
             <div id="menuEditor"></div>
             <hr>
-            <label>名單 (格式：分類,姓名)</label>
-            <textarea id="inputStudentList" style="width:100%; height:100px; border-radius:8px; border:1px solid #ccc; padding:10px; font-size: 12px;"></textarea>
-            <button onclick="saveAllSettings()" style="width:100%; padding:12px; background:#444; color:white; border:none; border-radius:10px; margin-top:10px; font-weight:bold;">💾 保存設定</button>
+            <label>名單 (分類,姓名)</label>
+            <textarea id="inputStudentList" style="width:100%; height:150px; border-radius:8px; border:1px solid #ccc; padding:10px; font-size: 12px;"></textarea>
+            <button onclick="saveAllSettings()" style="width:100%; padding:12px; background:#444; color:white; border:none; border-radius:10px; margin-top:10px; font-weight:bold;">💾 儲存並更新</button>
         </div>
     </div>
 </div>
 
 <script>
-    // 記得確認這裡的 URL 是否正確
     var scriptUrl = "https://script.google.com/macros/s/AKfycbwnqViI90bPvItzpm7XiEzDLHa3J1uBbS77FDU4HKoxlCh6WDUFMz_yUTF4TNgwiyt-Tg/exec";
 
-    var adminPassword = localStorage.getItem('cls_admin_pwd') || "1234";
-
-    // 更新後的名單：包含所有老師
+    // 強制定義名單順序
     var defaultStudents = [
         {className:"老師",name:"張"},{className:"老師",name:"江"},{className:"老師",name:"瑜"},{className:"老師",name:"美"},{className:"老師",name:"華"},{className:"老師",name:"Vivian"},{className:"老師",name:"范"},
         {className:"一年級",name:"林鈺潔"},{className:"一年級",name:"趙偉哲"},{className:"一年級",name:"林袖駖"},{className:"一年級",name:"林宜靖"},{className:"一年級",name:"許思燦"},{className:"一年級",name:"許語芯"},{className:"一年級",name:"許心彤"},{className:"一年級",name:"雷喬勛"},{className:"一年級",name:"蘇薇心"},{className:"一年級",name:"吳妍熙"},{className:"一年級",name:"陳惠苡"},{className:"一年級",name:"陳佑陵"},{className:"一年級",name:"雷喬甯"},{className:"一年級",name:"吳謹彤"},{className:"一年級",name:"許愷峻"},
@@ -106,25 +100,17 @@
         var d = new Date();
         var days = ["日","一","二","三","四","五","六"];
         document.getElementById('dateDisplay').innerText = `📅 ${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} (週${days[d.getDay()]})`;
-        
-        var classes = [...new Set(savedStudents.map(s => s.className))].sort((a,b)=>{
-            if(a==="老師") return -1;
-            if(b==="老師") return 1;
-            return a.localeCompare(b);
-        });
-        
-        var sel = document.getElementById('classSelect');
-        classes.forEach(c => { var opt = new Option(c, c); sel.add(opt); });
+        initClassSelect();
         initAdminUI();
     };
 
-    function toggleAdmin() {
-        var p = document.getElementById('adminPanel');
-        if (p.style.display !== 'block') {
-            var input = prompt("請輸入密碼：");
-            if (input === adminPassword) { p.style.display = 'block'; }
-            else if (input !== null) { alert("錯誤！"); }
-        } else { p.style.display = 'none'; }
+    function initClassSelect() {
+        var sel = document.getElementById('classSelect');
+        sel.innerHTML = '<option value="">-- 請選擇分類 --</option>';
+        // 強制排序邏輯
+        var orderMap = {"老師":0, "一年級":1, "二年級":2, "三年級":3, "四年級":4, "五年級":5, "六年級":6};
+        var classes = [...new Set(savedStudents.map(s => s.className))].sort((a,b) => (orderMap[a]??99) - (orderMap[b]??99));
+        classes.forEach(c => { var opt = new Option(c, c); sel.add(opt); });
     }
 
     function renderStudents() {
@@ -133,85 +119,77 @@
         var grid = document.getElementById('studentGrid');
         grid.innerHTML = '';
         document.getElementById('foodSection').style.display = 'none';
-        
         if(!cls && !search) return;
 
         savedStudents.filter(s => {
-            var matchCls = !cls || s.className === cls;
-            var matchName = !search || s.name.toLowerCase().includes(search.toLowerCase());
-            return matchCls && matchName;
+            return (!cls || s.className === cls) && (!search || s.name.toLowerCase().includes(search.toLowerCase()));
         }).forEach(stu => {
-            var orderIndex = historyLog.findIndex(h => h.name === stu.name && h.cls === stu.className);
-            var order = orderIndex !== -1 ? historyLog[orderIndex] : null;
-            
+            var order = historyLog.find(h => h.name === stu.name && h.cls === stu.className);
             var div = document.createElement('div');
             div.className = 'stu-btn' + (order ? ' done' : '');
             div.innerHTML = `<b>${stu.name}</b><small>${order ? order.item : '點餐'}</small>`;
-            
             div.onclick = function() {
                 if(order) {
-                    if(confirm(`取消「${stu.name}」的登記嗎？`)) {
-                        historyLog.splice(orderIndex, 1);
+                    if(confirm(`取消「${stu.name}」的紀錄嗎？`)) {
+                        historyLog = historyLog.filter(h => !(h.name === stu.name && h.cls === stu.className));
                         localStorage.setItem('cls_history', JSON.stringify(historyLog));
                         renderStudents();
                     }
                 } else {
-                    selectStudent(stu.name, div);
+                    selectStudent(stu.name, stu.className, div);
                 }
             };
             grid.appendChild(div);
         });
     }
 
-    function selectStudent(name, el) {
-        currentStu = name;
+    var currentCls = "";
+    function selectStudent(name, cls, el) {
+        currentStu = name; currentCls = cls;
         document.querySelectorAll('.stu-btn').forEach(b => b.classList.remove('selected'));
         el.classList.add('selected');
         var day = new Date().getDay();
-        if(day === 0 || day === 6) { alert("週末不供餐！"); return; }
-        document.getElementById('foodTitle').innerText = `為 ${name} 選餐：`;
+        if(day === 0 || day === 6) { alert("週末不供餐"); return; }
+        document.getElementById('foodTitle').innerText = `${name} (${cls})：`;
         var opts = document.getElementById('foodOptions');
         opts.innerHTML = '';
         weeklyMenu[day].forEach(food => {
             var btn = document.createElement('button');
             btn.className = 'food-btn';
             btn.innerHTML = `<span>${food.n}</span><span>$${food.p}</span>`;
-            btn.onclick = function() { submitOrder(food, el); };
+            btn.onclick = function() { submitOrder(food); };
             opts.appendChild(btn);
         });
         document.getElementById('foodSection').style.display = 'block';
     }
 
-    function submitOrder(food, btnEl) {
-        var stuInfo = savedStudents.find(s=>s.name===currentStu);
-        var cls = document.getElementById('classSelect').value || (stuInfo ? stuInfo.className : "未分類");
+    function submitOrder(food) {
         var dateStr = new Date().toLocaleDateString();
-        
-        historyLog.push({ date: dateStr, cls: cls, name: currentStu, item: food.n, price: food.p });
+        historyLog.push({ date: dateStr, cls: currentCls, name: currentStu, item: food.n, price: food.p });
         localStorage.setItem('cls_history', JSON.stringify(historyLog));
-        
         document.getElementById('foodSection').style.display = 'none';
         renderStudents();
-
-        var params = new URLSearchParams({ date: dateStr, cls: cls, name: currentStu, item: food.n, price: food.p });
-        fetch(scriptUrl + "?" + params.toString(), { method: 'POST', mode: 'no-cors' });
+        fetch(scriptUrl + "?" + new URLSearchParams({ date: dateStr, cls: currentCls, name: currentStu, item: food.n, price: food.p }).toString(), { method: 'POST', mode: 'no-cors' });
     }
 
-    function cancelSelect() {
-        document.getElementById('foodSection').style.display = 'none';
-        document.querySelectorAll('.stu-btn').forEach(b => b.classList.remove('selected'));
+    function resetSystem() {
+        if(confirm("這將清空所有自定義名單與點餐紀錄，並載入老師名單。確定嗎？")) {
+            localStorage.clear();
+            location.reload();
+        }
+    }
+
+    function toggleAdmin() {
+        var p = document.getElementById('adminPanel');
+        p.style.display = (p.style.display === 'block') ? 'none' : 'block';
     }
 
     function initAdminUI() {
         var html = '';
-        var days = ["","一","二","三","四","五"];
         for(var i=1; i<=5; i++) {
-            html += `<div style="margin-bottom:10px;"><b>週${days[i]}</b>`;
+            html += `<b>週${i}</b><div style="display:flex;gap:2px">`;
             for(var j=0; j<3; j++) {
-                html += `<div style="display:flex; gap:2px; margin-bottom:2px;">
-                    <input type="text" id="m_n_${i}_${j}" value="${weeklyMenu[i][j].n}" style="flex:3;">
-                    <input type="number" id="m_p_${i}_${j}" value="${weeklyMenu[i][j].p}" style="flex:1;">
-                </div>`;
+                html += `<input type="text" id="m_n_${i}_${j}" value="${weeklyMenu[i][j].n}" style="width:70%"><input type="number" id="m_p_${i}_${j}" value="${weeklyMenu[i][j].p}" style="width:30%">`;
             }
             html += `</div>`;
         }
@@ -220,21 +198,10 @@
     }
 
     function saveAllSettings() {
-        var newPwd = document.getElementById('adminPwdConfig').value;
-        if(newPwd) { localStorage.setItem('cls_admin_pwd', newPwd); }
-        for(var i=1; i<=5; i++) {
-            for(var j=0; j<3; j++) {
-                weeklyMenu[i][j] = { n: document.getElementById(`m_n_${i}_${j}`).value, p: parseInt(document.getElementById(`m_p_${i}_${j}`).value) || 0 };
-            }
-        }
-        localStorage.setItem('cls_weekly_menu', JSON.stringify(weeklyMenu));
         var raw = document.getElementById('inputStudentList').value;
-        savedStudents = raw.split('\n').filter(l => l.includes(',')).map(l => {
-            var p = l.split(',');
-            return { className: p[0].trim(), name: p[1].trim() };
-        });
+        savedStudents = raw.split('\n').filter(l => l.includes(',')).map(l => ({ className: l.split(',')[0].trim(), name: l.split(',')[1].trim() }));
         localStorage.setItem('cls_students', JSON.stringify(savedStudents));
-        alert("完成！");
+        alert("設定儲存成功！");
         location.reload();
     }
 
@@ -243,9 +210,11 @@
         historyLog.forEach(o => data.push([o.date, o.cls, o.name, o.item, o.price]));
         var ws = XLSX.utils.aoa_to_sheet(data);
         var wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "點餐");
-        XLSX.writeFile(wb, "報表.xlsx");
+        XLSX.utils.book_append_sheet(wb, ws, "報表");
+        XLSX.writeFile(wb, "點餐報表.xlsx");
     }
+
+    function cancelSelect() { document.getElementById('foodSection').style.display = 'none'; }
 </script>
 </body>
 </html>

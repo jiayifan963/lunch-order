@@ -17,13 +17,14 @@
         .student-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .stu-btn { padding: 12px 5px; border-radius: 12px; border: 1px solid #e2e8f0; background: white; text-align: center; cursor: pointer; transition: 0.2s; min-height: 60px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .stu-btn.selected { border: 2px solid var(--primary); background: #e7f3ff; }
-        .stu-btn.done { background: #f0fff4; border-color: #9ae6b4; color: #276749; cursor: default; }
+        .stu-btn.done { background: #f0fff4; border-color: #9ae6b4; color: #276749; }
         .stu-btn b { font-size: 15px; }
         .stu-btn small { font-size: 10px; margin-top: 2px; }
         #foodSection { display: none; border-top: 2px dashed #eee; margin-top: 20px; padding-top: 20px; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .food-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
         .food-btn { padding: 18px; border-radius: 15px; border: none; background: var(--primary); color: white; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .no-order-btn { background: white; color: var(--danger); border: 2px solid var(--danger); }
         .btn-footer { display: flex; justify-content: space-between; margin-top: 30px; }
         .btn-minor { background: none; border: none; color: #a0aec0; text-decoration: underline; cursor: pointer; font-size: 13px; }
         #adminPanel { display: none; background: #f8f9fa; padding: 15px; border-radius: 15px; margin-top: 15px; border: 1px solid #ddd; }
@@ -49,6 +50,7 @@
         <div id="foodSection">
             <label id="foodTitle" style="display:block; margin-bottom:15px; font-weight:bold; color:var(--primary); text-align:center;"></label>
             <div id="foodOptions" class="food-grid"></div>
+            <button onclick="submitOrder({n:'不訂餐', p:0})" class="food-btn no-order-btn" style="margin-top:10px;">🚫 今日不訂餐</button>
             <button onclick="cancelSelect()" style="width:100%; background:none; border:none; color:#999; margin-top:15px; cursor:pointer;">✕ 取消選擇</button>
         </div>
 
@@ -73,6 +75,7 @@
 </div>
 
 <script>
+
     var scriptUrl = "https://script.google.com/macros/s/AKfycbzGFxtO24X6qwoOntCRVPNsjNUw3c2CEuAXemkGLILAFOWePd8XI1Ze1HUDDeTyLac/exec";
 
     var adminPassword = localStorage.getItem('cls_admin_pwd') || "1234";
@@ -103,7 +106,6 @@
         var d = new Date();
         var days = ["日","一","二","三","四","五","六"];
         document.getElementById('dateDisplay').innerText = `📅 ${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} (週${days[d.getDay()]})`;
-        
         var classes = [...new Set(savedStudents.map(s => s.className))];
         var sel = document.getElementById('classSelect');
         classes.forEach(c => { var opt = new Option(c, c); sel.add(opt); });
@@ -127,11 +129,24 @@
         if(!cls) return;
 
         savedStudents.filter(s => s.className === cls).forEach(stu => {
-            var order = historyLog.find(h => h.name === stu.name && h.cls === stu.className);
+            var orderIndex = historyLog.findIndex(h => h.name === stu.name && h.cls === stu.className);
+            var order = orderIndex !== -1 ? historyLog[orderIndex] : null;
+            
             var div = document.createElement('div');
             div.className = 'stu-btn' + (order ? ' done' : '');
-            div.innerHTML = `<b>${stu.name}</b><small>${order ? order.item : '尚未點餐'}</small>`;
-            if(!order) div.onclick = function() { selectStudent(stu.name, div); };
+            div.innerHTML = `<b>${stu.name}</b><small>${order ? order.item : '尚未登記'}</small>`;
+            
+            div.onclick = function() {
+                if(order) {
+                    if(confirm(`學生 ${stu.name} 目前狀態：${order.item}\n確定要修改嗎？`)) {
+                        historyLog.splice(orderIndex, 1);
+                        localStorage.setItem('cls_history', JSON.stringify(historyLog));
+                        renderStudents();
+                    }
+                } else {
+                    selectStudent(stu.name, div);
+                }
+            };
             grid.appendChild(div);
         });
     }
@@ -162,6 +177,7 @@
         localStorage.setItem('cls_history', JSON.stringify(historyLog));
         document.getElementById('foodSection').style.display = 'none';
         renderStudents();
+        
         var params = new URLSearchParams({ date: dateStr, cls: cls, name: currentStu, item: food.n, price: food.p });
         fetch(scriptUrl + "?" + params.toString(), { method: 'POST', mode: 'no-cors' });
     }

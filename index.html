@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全校雲端點餐系統-修正版</title>
+    <title>全校雲端點餐系統</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root { --primary: #007bff; --success: #28a745; --danger: #dc3545; --bg: #f4f7f9; }
@@ -11,9 +11,9 @@
         body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; color: #333; }
         .container { width: 100%; max-width: 600px; margin: 0 auto; }
         .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); margin-bottom: 20px; }
-        .info-box { text-align: center; background: #e9ecef; padding: 12px; border-radius: 15px; margin-bottom: 10px; border: 1px solid #dee2e6; }
-        .search-box { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 15px; font-size: 16px; }
-        select { width: 100%; padding: 15px; border: 2px solid #edf2f7; border-radius: 12px; font-size: 16px; margin-bottom: 15px; appearance: none; background-color: white; }
+        .info-box { text-align: center; background: #e9ecef; padding: 12px; border-radius: 15px; margin-bottom: 10px; border: 1px solid #dee2e6; font-weight: bold; }
+        .search-box { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 15px; font-size: 16px; border: 2px solid #edf2f7; }
+        select { width: 100%; padding: 15px; border: 2px solid #edf2f7; border-radius: 12px; font-size: 16px; margin-bottom: 15px; appearance: none; background-color: white; cursor: pointer; }
         .student-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .stu-btn { padding: 12px 5px; border-radius: 12px; border: 1px solid #e2e8f0; background: white; text-align: center; cursor: pointer; transition: 0.2s; min-height: 60px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .stu-btn.selected { border: 2px solid var(--primary); background: #e7f3ff; }
@@ -24,23 +24,22 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .food-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
         .food-btn { padding: 18px; border-radius: 15px; border: none; background: var(--primary); color: white; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .btn-footer { display: flex; justify-content: space-between; margin-top: 30px; }
-        .btn-minor { background: none; border: none; color: #a0aec0; text-decoration: underline; cursor: pointer; font-size: 13px; }
-        #adminPanel { display: none; background: #f8f9fa; padding: 15px; border-radius: 15px; margin-top: 15px; border: 1px solid #ddd; }
+        .btn-footer { display: flex; justify-content: center; margin-top: 30px; }
+        .btn-minor { background: #eee; border: none; color: #666; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="card">
-        <h2 style="text-align:center; margin-top:0;">🍱 全校雲端點餐系統</h2>
+        <h2 style="text-align:center; margin-top:0;">🍱 全校點餐系統</h2>
         <div class="info-box"><div id="dateDisplay">載入中...</div></div>
         
         <select id="classSelect" onchange="renderStudents()">
-            <option value="">-- 請選擇分類 --</option>
+            <option value="">-- 請選擇年級或老師 --</option>
         </select>
 
-        <input type="text" id="nameSearch" class="search-box" style="width:100%" placeholder="🔍 輸入老師或學生姓名..." oninput="renderStudents()">
+        <input type="text" id="nameSearch" class="search-box" placeholder="🔍 輸入姓名快速找人..." oninput="renderStudents()">
 
         <div id="studentGrid" class="student-grid"></div>
 
@@ -48,32 +47,21 @@
             <label id="foodTitle" style="display:block; margin-bottom:15px; font-weight:bold; color:var(--primary); text-align:center;"></label>
             <div id="foodOptions" class="food-grid"></div>
             <button onclick="submitOrder({n:'不訂餐', p:0})" class="food-btn" style="background:white; color:var(--danger); border:2px solid var(--danger); margin-top:10px;">🚫 今日不訂餐</button>
-            <button onclick="cancelSelect()" style="width:100%; background:none; border:none; color:#999; margin-top:15px; cursor:pointer;">✕ 取消</button>
+            <button onclick="cancelSelect()" style="width:100%; background:none; border:none; color:#999; margin-top:15px; cursor:pointer;">✕ 取消選擇</button>
         </div>
 
         <div class="btn-footer">
-            <button class="btn-minor" onclick="toggleAdmin()">⚙️ 管理</button>
-            <button class="btn-minor" onclick="exportToExcel()">📥 Excel</button>
-        </div>
-
-        <div id="adminPanel">
-            <button onclick="resetSystem()" style="background:var(--danger); color:white; border:none; padding:5px 10px; border-radius:5px; float:right;">🧨 重置系統緩存</button>
-            <h3>系統設定</h3>
-            <hr>
-            <div id="menuEditor"></div>
-            <hr>
-            <label>名單 (分類,姓名)</label>
-            <textarea id="inputStudentList" style="width:100%; height:150px; border-radius:8px; border:1px solid #ccc; padding:10px; font-size: 12px;"></textarea>
-            <button onclick="saveAllSettings()" style="width:100%; padding:12px; background:#444; color:white; border:none; border-radius:10px; margin-top:10px; font-weight:bold;">💾 儲存並更新</button>
+            <button class="btn-minor" onclick="exportToExcel()">📥 下載今日報表 (Excel)</button>
         </div>
     </div>
 </div>
 
 <script>
+    // 你的 Google Apps Script 網址
     var scriptUrl = "https://script.google.com/macros/s/AKfycbwnqViI90bPvItzpm7XiEzDLHa3J1uBbS77FDU4HKoxlCh6WDUFMz_yUTF4TNgwiyt-Tg/exec";
 
-    // 強制定義名單順序
-    var defaultStudents = [
+    // 固定名單
+    var students = [
         {className:"老師",name:"張"},{className:"老師",name:"江"},{className:"老師",name:"瑜"},{className:"老師",name:"美"},{className:"老師",name:"華"},{className:"老師",name:"Vivian"},{className:"老師",name:"范"},
         {className:"一年級",name:"林鈺潔"},{className:"一年級",name:"趙偉哲"},{className:"一年級",name:"林袖駖"},{className:"一年級",name:"林宜靖"},{className:"一年級",name:"許思燦"},{className:"一年級",name:"許語芯"},{className:"一年級",name:"許心彤"},{className:"一年級",name:"雷喬勛"},{className:"一年級",name:"蘇薇心"},{className:"一年級",name:"吳妍熙"},{className:"一年級",name:"陳惠苡"},{className:"一年級",name:"陳佑陵"},{className:"一年級",name:"雷喬甯"},{className:"一年級",name:"吳謹彤"},{className:"一年級",name:"許愷峻"},
         {className:"二年級",name:"任彥輔"},{className:"二年級",name:"吳承恩"},{className:"二年級",name:"李依馨"},{className:"二年級",name:"阮妍芯"},{className:"二年級",name:"林子婼"},{className:"二年級",name:"林佩伶"},{className:"二年級",name:"林嘉豪"},{className:"二年級",name:"許昀紫"},{className:"二年級",name:"許芷媛"},{className:"二年級",name:"許倉源"},{className:"二年級",name:"許媛甄"},{className:"二年級",name:"許裴芸"},{className:"二年級",name:"程宥熙"},{className:"二年級",name:"趙宥程"},{className:"二年級",name:"鄭芯喬"},
@@ -83,7 +71,7 @@
         {className:"六年級",name:"吳嘉怡"},{className:"六年級",name:"周苡婷"},{className:"六年級",name:"林辰鑫"},{className:"六年級",name:"林夏彤"},{className:"六年級",name:"林雅芃"},{className:"六年級",name:"許岒澴"},{className:"六年級",name:"許郡宜"},{className:"六年級",name:"許閔哲"},{className:"六年級",name:"黃宥心"},{className:"六年級",name:"雷棨鋐"},{className:"六年級",name:"謝文硯"}
     ];
 
-    var defaultWeeklyMenu = {
+    var menu = {
         1: [{n:"炒麵＋綜合湯",p:70}, {n:"滷肉飯＋綜合湯",p:70}, {n:"米糕＋豆腐湯",p:60}],
         2: [{n:"套餐A",p:100}, {n:"套餐B",p:100}, {n:"套餐C",p:100}],
         3: [{n:"套餐A",p:100}, {n:"套餐B",p:100}, {n:"套餐C",p:100}],
@@ -91,27 +79,19 @@
         5: [{n:"套餐A",p:100}, {n:"套餐B",p:100}, {n:"套餐C",p:100}]
     };
 
-    var savedStudents = JSON.parse(localStorage.getItem('cls_students')) || defaultStudents;
-    var weeklyMenu = JSON.parse(localStorage.getItem('cls_weekly_menu')) || defaultWeeklyMenu;
     var historyLog = JSON.parse(localStorage.getItem('cls_history')) || [];
     var currentStu = null;
+    var currentCls = "";
 
     window.onload = function() {
         var d = new Date();
         var days = ["日","一","二","三","四","五","六"];
         document.getElementById('dateDisplay').innerText = `📅 ${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} (週${days[d.getDay()]})`;
-        initClassSelect();
-        initAdminUI();
-    };
-
-    function initClassSelect() {
+        
         var sel = document.getElementById('classSelect');
-        sel.innerHTML = '<option value="">-- 請選擇分類 --</option>';
-        // 強制排序邏輯
-        var orderMap = {"老師":0, "一年級":1, "二年級":2, "三年級":3, "四年級":4, "五年級":5, "六年級":6};
-        var classes = [...new Set(savedStudents.map(s => s.className))].sort((a,b) => (orderMap[a]??99) - (orderMap[b]??99));
-        classes.forEach(c => { var opt = new Option(c, c); sel.add(opt); });
-    }
+        var order = ["老師", "一年級", "二年級", "三年級", "四年級", "五年級", "六年級"];
+        order.forEach(c => { sel.add(new Option(c, c)); });
+    };
 
     function renderStudents() {
         var cls = document.getElementById('classSelect').value;
@@ -121,7 +101,7 @@
         document.getElementById('foodSection').style.display = 'none';
         if(!cls && !search) return;
 
-        savedStudents.filter(s => {
+        students.filter(s => {
             return (!cls || s.className === cls) && (!search || s.name.toLowerCase().includes(search.toLowerCase()));
         }).forEach(stu => {
             var order = historyLog.find(h => h.name === stu.name && h.cls === stu.className);
@@ -136,24 +116,23 @@
                         renderStudents();
                     }
                 } else {
-                    selectStudent(stu.name, stu.className, div);
+                    currentStu = stu.name; currentCls = stu.className;
+                    showFoodMenu(div);
                 }
             };
             grid.appendChild(div);
         });
     }
 
-    var currentCls = "";
-    function selectStudent(name, cls, el) {
-        currentStu = name; currentCls = cls;
+    function showFoodMenu(el) {
         document.querySelectorAll('.stu-btn').forEach(b => b.classList.remove('selected'));
         el.classList.add('selected');
         var day = new Date().getDay();
         if(day === 0 || day === 6) { alert("週末不供餐"); return; }
-        document.getElementById('foodTitle').innerText = `${name} (${cls})：`;
+        document.getElementById('foodTitle').innerText = `${currentStu} (${currentCls})`;
         var opts = document.getElementById('foodOptions');
         opts.innerHTML = '';
-        weeklyMenu[day].forEach(food => {
+        menu[day].forEach(food => {
             var btn = document.createElement('button');
             btn.className = 'food-btn';
             btn.innerHTML = `<span>${food.n}</span><span>$${food.p}</span>`;
@@ -172,38 +151,7 @@
         fetch(scriptUrl + "?" + new URLSearchParams({ date: dateStr, cls: currentCls, name: currentStu, item: food.n, price: food.p }).toString(), { method: 'POST', mode: 'no-cors' });
     }
 
-    function resetSystem() {
-        if(confirm("這將清空所有自定義名單與點餐紀錄，並載入老師名單。確定嗎？")) {
-            localStorage.clear();
-            location.reload();
-        }
-    }
-
-    function toggleAdmin() {
-        var p = document.getElementById('adminPanel');
-        p.style.display = (p.style.display === 'block') ? 'none' : 'block';
-    }
-
-    function initAdminUI() {
-        var html = '';
-        for(var i=1; i<=5; i++) {
-            html += `<b>週${i}</b><div style="display:flex;gap:2px">`;
-            for(var j=0; j<3; j++) {
-                html += `<input type="text" id="m_n_${i}_${j}" value="${weeklyMenu[i][j].n}" style="width:70%"><input type="number" id="m_p_${i}_${j}" value="${weeklyMenu[i][j].p}" style="width:30%">`;
-            }
-            html += `</div>`;
-        }
-        document.getElementById('menuEditor').innerHTML = html;
-        document.getElementById('inputStudentList').value = savedStudents.map(s => s.className + "," + s.name).join('\n');
-    }
-
-    function saveAllSettings() {
-        var raw = document.getElementById('inputStudentList').value;
-        savedStudents = raw.split('\n').filter(l => l.includes(',')).map(l => ({ className: l.split(',')[0].trim(), name: l.split(',')[1].trim() }));
-        localStorage.setItem('cls_students', JSON.stringify(savedStudents));
-        alert("設定儲存成功！");
-        location.reload();
-    }
+    function cancelSelect() { document.getElementById('foodSection').style.display = 'none'; }
 
     function exportToExcel() {
         var data = [["日期", "分類", "姓名", "餐點", "金額"]];
@@ -211,10 +159,8 @@
         var ws = XLSX.utils.aoa_to_sheet(data);
         var wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "報表");
-        XLSX.writeFile(wb, "點餐報表.xlsx");
+        XLSX.writeFile(wb, "點餐報表_" + new Date().toLocaleDateString() + ".xlsx");
     }
-
-    function cancelSelect() { document.getElementById('foodSection').style.display = 'none'; }
 </script>
 </body>
 </html>

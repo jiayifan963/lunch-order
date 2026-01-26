@@ -26,6 +26,7 @@
         .food-btn { padding: 18px; border-radius: 15px; border: none; background: var(--primary); color: white; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         .btn-footer { display: flex; justify-content: center; margin-top: 30px; }
         .btn-minor { background: #eee; border: none; color: #666; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold; }
+        .manual-btn { width: 100%; padding: 12px; background: #6c757d; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 15px; display: flex; justify-content: center; align-items: center; gap: 8px; }
     </style>
 </head>
 <body>
@@ -43,6 +44,10 @@
 
         <div id="studentGrid" class="student-grid"></div>
 
+        <button class="manual-btn" onclick="manualInputName()">
+            <span>➕</span> 名單外對象 (手動輸入)
+        </button>
+
         <div id="foodSection">
             <label id="foodTitle" style="display:block; margin-bottom:15px; font-weight:bold; color:var(--primary); text-align:center;"></label>
             <div id="foodOptions" class="food-grid"></div>
@@ -57,10 +62,8 @@
 </div>
 
 <script>
-    // 你的 Google Apps Script 網址
     var scriptUrl = "https://script.google.com/macros/s/AKfycbzGFxtO24X6qwoOntCRVPNsjNUw3c2CEuAXemkGLILAFOWePd8XI1Ze1HUDDeTyLac/exec";
 
-    // 固定名單
     var students = [
         {className:"老師",name:"張"},{className:"老師",name:"江"},{className:"老師",name:"瑜"},{className:"老師",name:"美"},{className:"老師",name:"華"},{className:"老師",name:"Vivian"},{className:"老師",name:"范"},
         {className:"國中",name:"昊謙"},{className:"國中",name:"建億"},
@@ -75,7 +78,7 @@
 
     var menu = {
         1: [{n:"炒麵＋綜合湯",p:70}, {n:"滷肉飯＋綜合湯",p:70}, {n:"米糕＋綜合湯",p:70}],
-        2: [{n:"餐盒",p:70}], // 修正點：補上閉合括號
+        2: [{n:"餐盒",p:70}],
         3: [{n:"滷肉飯",p:70}, {n:"乾關東煮",p:70}, {n:"湯關東煮",p:70}],
         4: [{n:"餐盒",p:70}, {n:"麵",p:70}, {n:"水餃",p:70}],
         5: [{n:"鍋燒麵",p:70}, {n:"肉醬麵",p:70}, {n:"蛋包飯",p:70}]
@@ -89,7 +92,6 @@
         var d = new Date();
         var days = ["日","一","二","三","四","五","六"];
         document.getElementById('dateDisplay').innerText = `📅 ${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} (週${days[d.getDay()]})`;
-        
         var sel = document.getElementById('classSelect');
         var order = ["老師", "一年級", "二年級", "三年級", "四年級", "五年級", "六年級", "國中", "其他"];
         order.forEach(c => { sel.add(new Option(c, c)); });
@@ -126,11 +128,29 @@
         });
     }
 
+    // 手動輸入功能
+    function manualInputName() {
+        var customName = prompt("請輸入訂餐者姓名：");
+        if (customName && customName.trim() !== "") {
+            currentStu = customName.trim();
+            currentCls = "外客/臨時";
+            
+            document.getElementById('foodTitle').innerText = `${currentStu} (${currentCls})`;
+            var foodSec = document.getElementById('foodSection');
+            foodSec.style.display = 'block';
+            
+            showFoodMenu(null); // 顯示餐點選單
+            foodSec.scrollIntoView({behavior: 'smooth'});
+        }
+    }
+
     function showFoodMenu(el) {
         document.querySelectorAll('.stu-btn').forEach(b => b.classList.remove('selected'));
-        el.classList.add('selected');
+        if(el) el.classList.add('selected');
+
         var day = new Date().getDay();
         if(day === 0 || day === 6) { alert("週末不供餐"); return; }
+        
         document.getElementById('foodTitle').innerText = `${currentStu} (${currentCls})`;
         var opts = document.getElementById('foodOptions');
         opts.innerHTML = '';
@@ -147,15 +167,12 @@
     function submitOrder(food) {
         var d = new Date();
         var dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
-        
-        // 更新本地紀錄
         historyLog.push({ date: dateStr, cls: currentCls, name: currentStu, item: food.n, price: food.p });
         localStorage.setItem('cls_history', JSON.stringify(historyLog));
         
         document.getElementById('foodSection').style.display = 'none';
         renderStudents();
 
-        // 傳送到 Apps Script
         var formData = new URLSearchParams({
             date: dateStr,
             cls: currentCls,
@@ -164,15 +181,7 @@
             price: food.p
         });
 
-        fetch(scriptUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: formData
-        }).then(() => {
-            console.log("Success");
-        }).catch(err => {
-            alert("同步失敗，請檢查網路！");
-        });
+        fetch(scriptUrl, { method: 'POST', mode: 'no-cors', body: formData });
     }
 
     function cancelSelect() { document.getElementById('foodSection').style.display = 'none'; }

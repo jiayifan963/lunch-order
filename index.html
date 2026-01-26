@@ -75,7 +75,7 @@
 
     var menu = {
         1: [{n:"炒麵＋綜合湯",p:70}, {n:"滷肉飯＋綜合湯",p:70}, {n:"米糕＋綜合湯",p:70}],
-        2: [{n:"餐盒",p:70}
+        2: [{n:"餐盒",p:70}], // 修正點：補上閉合括號
         3: [{n:"滷肉飯",p:70}, {n:"乾關東煮",p:70}, {n:"湯關東煮",p:70}],
         4: [{n:"餐盒",p:70}, {n:"麵",p:70}, {n:"水餃",p:70}],
         5: [{n:"鍋燒麵",p:70}, {n:"肉醬麵",p:70}, {n:"蛋包飯",p:70}]
@@ -91,7 +91,7 @@
         document.getElementById('dateDisplay').innerText = `📅 ${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} (週${days[d.getDay()]})`;
         
         var sel = document.getElementById('classSelect');
-        var order = ["老師", "一年級", "二年級", "三年級", "四年級", "五年級", "六年級"];
+        var order = ["老師", "一年級", "二年級", "三年級", "四年級", "五年級", "六年級", "國中", "其他"];
         order.forEach(c => { sel.add(new Option(c, c)); });
     };
 
@@ -145,12 +145,34 @@
     }
 
     function submitOrder(food) {
-        var dateStr = new Date().toLocaleDateString();
+        var d = new Date();
+        var dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+        
+        // 更新本地紀錄
         historyLog.push({ date: dateStr, cls: currentCls, name: currentStu, item: food.n, price: food.p });
         localStorage.setItem('cls_history', JSON.stringify(historyLog));
+        
         document.getElementById('foodSection').style.display = 'none';
         renderStudents();
-        fetch(scriptUrl + "?" + new URLSearchParams({ date: dateStr, cls: currentCls, name: currentStu, item: food.n, price: food.p }).toString(), { method: 'POST', mode: 'no-cors' });
+
+        // 傳送到 Apps Script
+        var formData = new URLSearchParams({
+            date: dateStr,
+            cls: currentCls,
+            name: currentStu,
+            item: food.n,
+            price: food.p
+        });
+
+        fetch(scriptUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: formData
+        }).then(() => {
+            console.log("Success");
+        }).catch(err => {
+            alert("同步失敗，請檢查網路！");
+        });
     }
 
     function cancelSelect() { document.getElementById('foodSection').style.display = 'none'; }

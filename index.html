@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全校雲端點餐系統 - 年級彙整版</title>
+    <title>全校雲端點餐系統 - 自動更新版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root { --primary: #007bff; --success: #28a745; --danger: #dc3545; --bg: #f4f7f9; }
@@ -17,7 +17,7 @@
         .student-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .stu-btn { padding: 12px 5px; border-radius: 12px; border: 1px solid #e2e8f0; background: white; text-align: center; cursor: pointer; transition: 0.2s; min-height: 65px; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
         .stu-btn.has-choice { border: 2px solid var(--primary); background: #e7f3ff; }
-        .stu-btn.done { background: #f0fff4; border-color: #9ae6b4; color: #276749; opacity: 0.6; }
+        .stu-btn.done { background: #f0fff4; border-color: #9ae6b4; color: #276749; opacity: 0.8; }
         .stu-btn b { font-size: 15px; }
         .stu-btn small { font-size: 10px; color: #007bff; font-weight: bold; margin-top: 2px; }
         #foodSection { display: none; background: #fff; border: 2px solid #007bff; border-radius: 15px; padding: 15px; margin-top: 15px; position: sticky; bottom: 20px; z-index: 100; box-shadow: 0 -5px 15px rgba(0,0,0,0.1); }
@@ -88,15 +88,31 @@
         5: [{n:"鍋燒麵",p:70}, {n:"肉醬麵",p:70}, {n:"蛋包飯",p:70}]
     };
 
-    var historyLog = JSON.parse(localStorage.getItem('cls_history')) || [];
+    var historyLog = [];
     var batchData = {}; 
     var currentStu = null;
     var currentCls = "";
 
     window.onload = function() {
         var d = new Date();
+        var dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
         var days = ["日","一","二","三","四","五","六"];
-        document.getElementById('dateDisplay').innerText = `📅 ${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} (週${days[d.getDay()]})`;
+        document.getElementById('dateDisplay').innerText = `📅 ${dateStr} (週${days[d.getDay()]})`;
+        
+        // --- 重點：日期檢查邏輯 ---
+        var savedData = localStorage.getItem('cls_history');
+        if (savedData) {
+            var parsed = JSON.parse(savedData);
+            // 如果儲存的第一筆資料日期不是今天，就整份清掉
+            if (parsed.length > 0 && parsed[0].date !== dateStr) {
+                localStorage.removeItem('cls_history');
+                historyLog = [];
+                console.log("偵測到隔日，已自動重設清單。");
+            } else {
+                historyLog = parsed;
+            }
+        }
+        
         var sel = document.getElementById('classSelect');
         ["老師", "一年級", "二年級", "三年級", "四年級", "五年級", "六年級", "國中", "其他"].forEach(c => { sel.add(new Option(c, c)); });
     };
@@ -115,14 +131,21 @@
         if(!cls) return;
 
         students.filter(s => s.className === cls).forEach(stu => {
-            var isDone = historyLog.some(h => h.name === stu.name && h.cls === stu.className);
+            var order = historyLog.find(h => h.name === stu.name && h.cls === stu.className);
             var div = document.createElement('div');
-            div.className = 'stu-btn' + (isDone ? ' done' : '') + (batchData[stu.name] ? ' has-choice' : '');
+            div.className = 'stu-btn' + (order ? ' done' : '') + (batchData[stu.name] ? ' has-choice' : '');
             div.id = 'btn-' + stu.name;
-            div.innerHTML = `<b>${stu.name}</b><small>${batchData[stu.name] ? batchData[stu.name].item : (isDone ? '已上傳' : '未點')}</small>`;
+            div.innerHTML = `<b>${stu.name}</b><small>${batchData[stu.name] ? batchData[stu.name].item : (order ? order.item : '未點')}</small>`;
             
             div.onclick = function() {
-                if(isDone) return;
+                if(order) {
+                    if(confirm(`取消「${stu.name}」今日已送出的紀錄嗎？`)) {
+                        historyLog = historyLog.filter(h => !(h.name === stu.name && h.cls === stu.className));
+                        localStorage.setItem('cls_history', JSON.stringify(historyLog));
+                        renderStudents();
+                    }
+                    return;
+                }
                 currentStu = stu.name; currentCls = stu.className;
                 openFoodMenu();
             };
@@ -133,12 +156,9 @@
     function openFoodMenu() {
         var day = new Date().getDay();
         if(day === 0 || day === 6) { alert("週末不供餐"); return; }
-        
         document.getElementById('foodTitle').innerText = `正在為「${currentStu}」選餐`;
         var opts = document.getElementById('foodOptions');
         opts.innerHTML = '';
-        
-        // 顯示/隱藏單人清除按鈕
         document.getElementById('clearSingleBtn').style.display = batchData[currentStu] ? 'block' : 'none';
 
         var options = [...menu[day], {n:"不訂餐", p:0}];
@@ -157,7 +177,6 @@
         document.getElementById('foodSection').style.display = 'block';
     }
 
-    // 清除單人選取
     function clearSingleChoice() {
         if(batchData[currentStu]) {
             delete batchData[currentStu];
@@ -167,10 +186,9 @@
         }
     }
 
-    // 重設目前整個年級的暫存
     function resetCurrentBatch() {
         if(Object.keys(batchData).length === 0) return;
-        if(confirm("確定要清空目前「暫存中」的所有點餐嗎？(已上傳的不會受影響)")) {
+        if(confirm("確定要清空目前「暫存中」的所有點餐嗎？")) {
             batchData = {};
             updateBatchUI();
             renderStudents();

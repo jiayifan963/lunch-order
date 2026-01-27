@@ -23,10 +23,12 @@
         #foodSection { display: none; border-top: 2px dashed #eee; margin-top: 20px; padding-top: 20px; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .food-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-        .food-btn { padding: 18px; border-radius: 15px; border: none; background: var(--primary); color: white; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .food-btn { padding: 18px; border-radius: 15px; border: 2px solid transparent; background: #f8f9fa; color: #333; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .food-btn.active { border-color: var(--primary); background: #e7f3ff; color: var(--primary); }
         .btn-footer { display: flex; justify-content: center; margin-top: 30px; }
         .btn-minor { background: #eee; border: none; color: #666; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold; }
         .manual-btn { width: 100%; padding: 12px; background: #6c757d; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 15px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .confirm-btn { width: 100%; padding: 20px; background: var(--success); color: white; border: none; border-radius: 15px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; display: none; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3); }
     </style>
 </head>
 <body>
@@ -51,7 +53,9 @@
         <div id="foodSection">
             <label id="foodTitle" style="display:block; margin-bottom:15px; font-weight:bold; color:var(--primary); text-align:center;"></label>
             <div id="foodOptions" class="food-grid"></div>
-            <button onclick="submitOrder({n:'不訂餐', p:0})" class="food-btn" style="background:white; color:var(--danger); border:2px solid var(--danger); margin-top:10px;">🚫 今日不訂餐</button>
+            
+            <button id="submitBtn" class="confirm-btn" onclick="finalSubmit()">✔️ 確認送出訂單</button>
+            
             <button onclick="cancelSelect()" style="width:100%; background:none; border:none; color:#999; margin-top:15px; cursor:pointer;">✕ 取消選擇</button>
         </div>
 
@@ -87,6 +91,7 @@
     var historyLog = JSON.parse(localStorage.getItem('cls_history')) || [];
     var currentStu = null;
     var currentCls = "";
+    var tempSelection = null; // 用來暫存選中的餐點
 
     window.onload = function() {
         var d = new Date();
@@ -128,19 +133,13 @@
         });
     }
 
-    // 手動輸入功能
     function manualInputName() {
         var customName = prompt("請輸入訂餐者姓名：");
         if (customName && customName.trim() !== "") {
             currentStu = customName.trim();
             currentCls = "外客/臨時";
-            
-            document.getElementById('foodTitle').innerText = `${currentStu} (${currentCls})`;
-            var foodSec = document.getElementById('foodSection');
-            foodSec.style.display = 'block';
-            
-            showFoodMenu(null); // 顯示餐點選單
-            foodSec.scrollIntoView({behavior: 'smooth'});
+            showFoodMenu(null);
+            document.getElementById('foodSection').scrollIntoView({behavior: 'smooth'});
         }
     }
 
@@ -148,37 +147,56 @@
         document.querySelectorAll('.stu-btn').forEach(b => b.classList.remove('selected'));
         if(el) el.classList.add('selected');
 
+        tempSelection = null; // 重設暫存
+        document.getElementById('submitBtn').style.display = 'none'; // 隱藏送出鈕
+
         var day = new Date().getDay();
         if(day === 0 || day === 6) { alert("週末不供餐"); return; }
         
         document.getElementById('foodTitle').innerText = `${currentStu} (${currentCls})`;
         var opts = document.getElementById('foodOptions');
         opts.innerHTML = '';
-        menu[day].forEach(food => {
+        
+        // 加入菜單按鈕
+        var dailyMenu = [...menu[day], {n:"不訂餐", p:0}];
+        dailyMenu.forEach(food => {
             var btn = document.createElement('button');
             btn.className = 'food-btn';
-            btn.innerHTML = `<span>${food.n}</span><span>$${food.p}</span>`;
-            btn.onclick = function() { submitOrder(food); };
+            btn.innerHTML = `<span>${food.n}</span><span>${food.p > 0 ? '$'+food.p : ''}</span>`;
+            btn.onclick = function() {
+                // 點擊效果：切換選中狀態
+                document.querySelectorAll('.food-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                tempSelection = food;
+                document.getElementById('submitBtn').style.display = 'block'; // 顯示確認鈕
+            };
             opts.appendChild(btn);
         });
         document.getElementById('foodSection').style.display = 'block';
     }
 
-    function submitOrder(food) {
+    function finalSubmit() {
+        if(!tempSelection) return;
+        
         var d = new Date();
         var dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
-        historyLog.push({ date: dateStr, cls: currentCls, name: currentStu, item: food.n, price: food.p });
+        
+        // 1. 存入本地紀錄
+        historyLog.push({ date: dateStr, cls: currentCls, name: currentStu, item: tempSelection.n, price: tempSelection.p });
         localStorage.setItem('cls_history', JSON.stringify(historyLog));
         
+        // 2. UI 反饋
+        alert(`已成功記錄：${currentStu} - ${tempSelection.n}`);
         document.getElementById('foodSection').style.display = 'none';
         renderStudents();
 
+        // 3. 上傳雲端
         var formData = new URLSearchParams({
             date: dateStr,
             cls: currentCls,
             name: currentStu,
-            item: food.n,
-            price: food.p
+            item: tempSelection.n,
+            price: tempSelection.p
         });
 
         fetch(scriptUrl, { method: 'POST', mode: 'no-cors', body: formData });

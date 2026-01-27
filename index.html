@@ -23,7 +23,10 @@
         #foodSection { display: none; background: #fff; border: 2px solid #007bff; border-radius: 15px; padding: 15px; margin-top: 15px; position: sticky; bottom: 20px; z-index: 100; box-shadow: 0 -5px 15px rgba(0,0,0,0.1); }
         .food-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
         .food-btn { padding: 15px; border-radius: 10px; border: 1px solid #ddd; background: #f8f9fa; font-size: 15px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; }
-        .confirm-card { background: #28a745; color: white; padding: 20px; border-radius: 15px; text-align: center; margin-top: 20px; display: none; cursor: pointer; }
+        .batch-area { display: none; margin-top: 20px; }
+        .confirm-card { background: var(--success); color: white; padding: 18px; border-radius: 15px; text-align: center; cursor: pointer; flex: 3; }
+        .reset-btn { background: var(--danger); color: white; padding: 18px; border-radius: 15px; text-align: center; cursor: pointer; flex: 1; margin-left: 10px; font-weight: bold; }
+        .footer-btns { display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
@@ -42,12 +45,18 @@
         <div id="foodSection">
             <div id="foodTitle" style="font-weight:bold; margin-bottom:10px; text-align:center; color:#007bff;"></div>
             <div id="foodOptions" class="food-grid"></div>
+            <button id="clearSingleBtn" onclick="clearSingleChoice()" style="width:100%; border:1px solid var(--danger); color:var(--danger); background:white; padding:10px; border-radius:10px; margin-top:10px; font-weight:bold; display:none;">🗑️ 清除此人選餐</button>
             <button onclick="cancelSelect()" style="width:100%; border:none; background:none; color:#666; margin-top:10px;">✕ 關閉</button>
         </div>
 
-        <div id="batchConfirm" class="confirm-card" onclick="submitBatch()">
-            <div style="font-size: 20px;">🚀 統一送出訂單</div>
-            <div id="batchCount" style="font-size: 14px; margin-top: 5px;">目前已點：0 人</div>
+        <div id="batchArea" class="batch-area">
+            <div class="footer-btns">
+                <div class="confirm-card" onclick="submitBatch()">
+                    <div style="font-size: 18px; font-weight:bold;">🚀 統一送出</div>
+                    <div id="batchCount" style="font-size: 12px; opacity:0.9;">已選：0 人</div>
+                </div>
+                <div class="reset-btn" onclick="resetCurrentBatch()">重設</div>
+            </div>
         </div>
 
         <div class="btn-footer">
@@ -80,7 +89,7 @@
     };
 
     var historyLog = JSON.parse(localStorage.getItem('cls_history')) || [];
-    var batchData = {}; // 格式: { "姓名": { item, price } }
+    var batchData = {}; 
     var currentStu = null;
     var currentCls = "";
 
@@ -93,7 +102,7 @@
     };
 
     function resetAndRender() {
-        batchData = {}; // 切換年級時清空暫存
+        batchData = {}; 
         updateBatchUI();
         renderStudents();
     }
@@ -129,6 +138,9 @@
         var opts = document.getElementById('foodOptions');
         opts.innerHTML = '';
         
+        // 顯示/隱藏單人清除按鈕
+        document.getElementById('clearSingleBtn').style.display = batchData[currentStu] ? 'block' : 'none';
+
         var options = [...menu[day], {n:"不訂餐", p:0}];
         options.forEach(food => {
             var btn = document.createElement('button');
@@ -137,7 +149,7 @@
             btn.onclick = function() {
                 batchData[currentStu] = { item: food.n, price: food.p };
                 updateBatchUI();
-                renderStudents(); // 重新渲染標示已選
+                renderStudents();
                 document.getElementById('foodSection').style.display = 'none';
             };
             opts.appendChild(btn);
@@ -145,14 +157,34 @@
         document.getElementById('foodSection').style.display = 'block';
     }
 
+    // 清除單人選取
+    function clearSingleChoice() {
+        if(batchData[currentStu]) {
+            delete batchData[currentStu];
+            updateBatchUI();
+            renderStudents();
+            document.getElementById('foodSection').style.display = 'none';
+        }
+    }
+
+    // 重設目前整個年級的暫存
+    function resetCurrentBatch() {
+        if(Object.keys(batchData).length === 0) return;
+        if(confirm("確定要清空目前「暫存中」的所有點餐嗎？(已上傳的不會受影響)")) {
+            batchData = {};
+            updateBatchUI();
+            renderStudents();
+        }
+    }
+
     function updateBatchUI() {
         var count = Object.keys(batchData).length;
-        var btn = document.getElementById('batchConfirm');
+        var area = document.getElementById('batchArea');
         if(count > 0) {
-            btn.style.display = 'block';
-            document.getElementById('batchCount').innerText = `目前已選好：${count} 人，點擊送出雲端`;
+            area.style.display = 'block';
+            document.getElementById('batchCount').innerText = `已選：${count} 人`;
         } else {
-            btn.style.display = 'none';
+            area.style.display = 'none';
         }
     }
 
@@ -163,14 +195,10 @@
         var d = new Date();
         var dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
         
-        // 迴圈送出資料
         for (let name in batchData) {
             let info = batchData[name];
-            
-            // 存入本地
             historyLog.push({ date: dateStr, cls: currentCls, name: name, item: info.item, price: info.price });
             
-            // 傳送到 Apps Script
             let formData = new URLSearchParams({
                 date: dateStr,
                 cls: currentCls,

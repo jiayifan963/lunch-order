@@ -18,10 +18,10 @@
         .stu-btn.has-choice { border: 2px solid var(--primary); background: #e7f3ff; }
         .stu-btn.done { background: #f0fff4; border-color: #9ae6b4; opacity: 0.8; }
         .stu-btn b { font-size: 15px; display: block; }
-        .stu-btn small { font-size: 11px; margin-top: 4px; font-weight: bold; line-height: 1.2; }
+        .stu-btn small { font-size: 11px; margin-top: 4px; font-weight: bold; line-height: 1.2; display: block; }
         #foodSection { display: none; background: #fff; border: 2px solid var(--primary); border-radius: 15px; padding: 15px; position: fixed; bottom: 20px; left: 5%; width: 90%; z-index: 1000; box-shadow: 0 -5px 20px rgba(0,0,0,0.2); }
         .food-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
-        .food-btn { padding: 15px; border-radius: 10px; border: 1px solid #ddd; background: #f8f9fa; font-weight: bold; display: flex; justify-content: space-between; }
+        .food-btn { padding: 15px; border-radius: 10px; border: 1px solid #ddd; background: #f8f9fa; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .batch-area { display: none; margin-top: 20px; }
         .footer-btns { display: flex; gap: 10px; }
         .confirm-card { background: var(--success); color: white; padding: 15px; border-radius: 15px; text-align: center; flex: 3; cursor: pointer; font-weight: bold; }
@@ -67,7 +67,6 @@
 
 <script>
     // ======= 配置區 =======
-    const IS_TEST_MODE = false; 
     const scriptUrl = "https://script.google.com/macros/s/AKfycbzGFxtO24X6qwoOntCRVPNsjNUw3c2CEuAXemkGLILAFOWePd8XI1Ze1HUDDeTyLac/exec";
 
     var students = [
@@ -121,6 +120,7 @@
             var div = document.createElement('div');
             div.className = 'stu-btn' + (uploaded ? ' done' : '') + (temp ? ' has-choice' : '');
             
+            // 姓名下方顯示餐點名稱
             let statusHtml = temp ? `<small style="color:var(--primary)">⏳ ${temp.item}</small>` : 
                              (uploaded ? `<small style="color:var(--success)">✅ ${uploaded.item}</small>` : `<small style="color:#bbb">未選</small>`);
             
@@ -176,24 +176,31 @@
             let [name, info] = entries[i];
             mainText.innerText = `⏳ 正在傳送 ${i+1}/${entries.length}`;
 
-            try {
-                let fd = new URLSearchParams({date: dateStr, cls: currentCls, name: name, item: info.item, price: info.price});
-                await fetch(scriptUrl, {method: 'POST', mode: 'no-cors', body: fd});
-                
-                historyLog.push({ date: dateStr, cls: currentCls, name: name, item: info.item, price: info.price });
-                delete batchData[name];
-                localStorage.setItem('cls_history', JSON.stringify(historyLog));
-            } catch (e) {
-                alert(`❌ 傳送「${name}」失敗！網路可能中斷，剩餘資料已保留。`);
-                break;
-            }
+            // 使用最新的傳輸協議 (GET 參數)
+            let finalUrl = scriptUrl + 
+                "?date=" + encodeURIComponent(dateStr) +
+                "&cls=" + encodeURIComponent(currentCls) +
+                "&name=" + encodeURIComponent(name) +
+                "&item=" + encodeURIComponent(info.item) +
+                "&price=" + encodeURIComponent(info.price);
+
+            await new Promise((resolve) => {
+                let img = new Image();
+                img.onload = img.onerror = () => {
+                    historyLog.push({ date: dateStr, cls: currentCls, name: name, item: info.item, price: info.price });
+                    delete batchData[name];
+                    resolve();
+                };
+                img.src = finalUrl;
+            });
+            localStorage.setItem('cls_history', JSON.stringify(historyLog));
         }
 
         isSending = false;
         btn.classList.remove('sending');
         mainText.innerText = `🚀 統一送出`;
         updateBatchUI(); renderStudents();
-        if(Object.keys(batchData).length === 0) alert("✅ 全部訂單已成功上傳雲端！");
+        alert("✅ 全部訂單已完成上傳步驟！請檢查雲端試算表。");
     }
 
     function clearSingleChoice() { delete batchData[currentStu]; updateBatchUI(); renderStudents(); document.getElementById('foodSection').style.display = 'none'; }

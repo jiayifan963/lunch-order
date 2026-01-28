@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全校雲端點餐系統 - 自動更新版</title>
+    <title>全校雲端點餐系統 - 斷線保護版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root { --primary: #007bff; --success: #28a745; --danger: #dc3545; --bg: #f4f7f9; }
@@ -12,19 +12,19 @@
         .container { width: 100%; max-width: 600px; margin: 0 auto; }
         .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); margin-bottom: 20px; }
         .info-box { text-align: center; background: #e9ecef; padding: 12px; border-radius: 15px; margin-bottom: 10px; border: 1px solid #dee2e6; font-weight: bold; }
-        .search-box { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 15px; font-size: 16px; border: 2px solid #edf2f7; }
         select { width: 100%; padding: 15px; border: 2px solid #edf2f7; border-radius: 12px; font-size: 16px; margin-bottom: 15px; appearance: none; background-color: white; cursor: pointer; }
         .student-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .stu-btn { padding: 12px 5px; border-radius: 12px; border: 1px solid #e2e8f0; background: white; text-align: center; cursor: pointer; transition: 0.2s; min-height: 65px; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
+        .stu-btn { padding: 12px 5px; border-radius: 12px; border: 1px solid #e2e8f0; background: white; text-align: center; cursor: pointer; transition: 0.2s; min-height: 65px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .stu-btn.has-choice { border: 2px solid var(--primary); background: #e7f3ff; }
-        .stu-btn.done { background: #f0fff4; border-color: #9ae6b4; color: #276749; opacity: 0.8; }
+        .stu-btn.done { background: #f0fff4; border-color: #9ae6b4; color: #276749; opacity: 0.6; }
         .stu-btn b { font-size: 15px; }
         .stu-btn small { font-size: 10px; color: #007bff; font-weight: bold; margin-top: 2px; }
         #foodSection { display: none; background: #fff; border: 2px solid #007bff; border-radius: 15px; padding: 15px; margin-top: 15px; position: sticky; bottom: 20px; z-index: 100; box-shadow: 0 -5px 15px rgba(0,0,0,0.1); }
         .food-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
         .food-btn { padding: 15px; border-radius: 10px; border: 1px solid #ddd; background: #f8f9fa; font-size: 15px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; }
         .batch-area { display: none; margin-top: 20px; }
-        .confirm-card { background: var(--success); color: white; padding: 18px; border-radius: 15px; text-align: center; cursor: pointer; flex: 3; }
+        .confirm-card { background: var(--success); color: white; padding: 18px; border-radius: 15px; text-align: center; cursor: pointer; flex: 3; transition: 0.3s; }
+        .confirm-card.sending { background: #6c757d; cursor: not-allowed; }
         .reset-btn { background: var(--danger); color: white; padding: 18px; border-radius: 15px; text-align: center; cursor: pointer; flex: 1; margin-left: 10px; font-weight: bold; }
         .footer-btns { display: flex; justify-content: space-between; align-items: center; }
     </style>
@@ -51,11 +51,11 @@
 
         <div id="batchArea" class="batch-area">
             <div class="footer-btns">
-                <div class="confirm-card" onclick="submitBatch()">
-                    <div style="font-size: 18px; font-weight:bold;">🚀 統一送出</div>
+                <div id="batchConfirm" class="confirm-card" onclick="submitBatch()">
+                    <div id="mainText" style="font-size: 18px; font-weight:bold;">🚀 統一送出</div>
                     <div id="batchCount" style="font-size: 12px; opacity:0.9;">已選：0 人</div>
                 </div>
-                <div class="reset-btn" onclick="resetCurrentBatch()">重設</div>
+                <div id="resetBtn" class="reset-btn" onclick="resetCurrentBatch()">重設</div>
             </div>
         </div>
 
@@ -68,6 +68,7 @@
 <script>
     var scriptUrl = "https://script.google.com/macros/s/AKfycbzGFxtO24X6qwoOntCRVPNsjNUw3c2CEuAXemkGLILAFOWePd8XI1Ze1HUDDeTyLac/exec";
 
+    // 學生名單 (省略展示，保持與之前一致即可)
     var students = [
         {className:"老師",name:"張"},{className:"老師",name:"江"},{className:"老師",name:"瑜"},{className:"老師",name:"美"},{className:"老師",name:"華"},{className:"老師",name:"Vivian"},{className:"老師",name:"范"},
         {className:"國中",name:"昊謙"},{className:"國中",name:"建億"},
@@ -88,36 +89,22 @@
         5: [{n:"鍋燒麵",p:70}, {n:"肉醬麵",p:70}, {n:"蛋包飯",p:70}]
     };
 
-    var historyLog = [];
+    var historyLog = JSON.parse(localStorage.getItem('cls_history')) || [];
     var batchData = {}; 
     var currentStu = null;
     var currentCls = "";
+    var isSending = false;
 
     window.onload = function() {
         var d = new Date();
-        var dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
         var days = ["日","一","二","三","四","五","六"];
-        document.getElementById('dateDisplay').innerText = `📅 ${dateStr} (週${days[d.getDay()]})`;
-        
-        // --- 重點：日期檢查邏輯 ---
-        var savedData = localStorage.getItem('cls_history');
-        if (savedData) {
-            var parsed = JSON.parse(savedData);
-            // 如果儲存的第一筆資料日期不是今天，就整份清掉
-            if (parsed.length > 0 && parsed[0].date !== dateStr) {
-                localStorage.removeItem('cls_history');
-                historyLog = [];
-                console.log("偵測到隔日，已自動重設清單。");
-            } else {
-                historyLog = parsed;
-            }
-        }
-        
+        document.getElementById('dateDisplay').innerText = `📅 ${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} (週${days[d.getDay()]})`;
         var sel = document.getElementById('classSelect');
         ["老師", "一年級", "二年級", "三年級", "四年級", "五年級", "六年級", "國中", "其他"].forEach(c => { sel.add(new Option(c, c)); });
     };
 
     function resetAndRender() {
+        if(isSending) return;
         batchData = {}; 
         updateBatchUI();
         renderStudents();
@@ -131,21 +118,13 @@
         if(!cls) return;
 
         students.filter(s => s.className === cls).forEach(stu => {
-            var order = historyLog.find(h => h.name === stu.name && h.cls === stu.className);
+            var isDone = historyLog.some(h => h.name === stu.name && h.cls === stu.className);
             var div = document.createElement('div');
-            div.className = 'stu-btn' + (order ? ' done' : '') + (batchData[stu.name] ? ' has-choice' : '');
-            div.id = 'btn-' + stu.name;
-            div.innerHTML = `<b>${stu.name}</b><small>${batchData[stu.name] ? batchData[stu.name].item : (order ? order.item : '未點')}</small>`;
+            div.className = 'stu-btn' + (isDone ? ' done' : '') + (batchData[stu.name] ? ' has-choice' : '');
+            div.innerHTML = `<b>${stu.name}</b><small>${batchData[stu.name] ? batchData[stu.name].item : (isDone ? '已上傳' : '未點')}</small>`;
             
             div.onclick = function() {
-                if(order) {
-                    if(confirm(`取消「${stu.name}」今日已送出的紀錄嗎？`)) {
-                        historyLog = historyLog.filter(h => !(h.name === stu.name && h.cls === stu.className));
-                        localStorage.setItem('cls_history', JSON.stringify(historyLog));
-                        renderStudents();
-                    }
-                    return;
-                }
+                if(isDone || isSending) return;
                 currentStu = stu.name; currentCls = stu.className;
                 openFoodMenu();
             };
@@ -168,8 +147,7 @@
             btn.innerHTML = `<span>${food.n}</span><span>${food.p>0 ? '$'+food.p : ''}</span>`;
             btn.onclick = function() {
                 batchData[currentStu] = { item: food.n, price: food.p };
-                updateBatchUI();
-                renderStudents();
+                updateBatchUI(); renderStudents();
                 document.getElementById('foodSection').style.display = 'none';
             };
             opts.appendChild(btn);
@@ -178,58 +156,79 @@
     }
 
     function clearSingleChoice() {
-        if(batchData[currentStu]) {
-            delete batchData[currentStu];
-            updateBatchUI();
-            renderStudents();
-            document.getElementById('foodSection').style.display = 'none';
-        }
+        delete batchData[currentStu];
+        updateBatchUI(); renderStudents();
+        document.getElementById('foodSection').style.display = 'none';
     }
 
     function resetCurrentBatch() {
-        if(Object.keys(batchData).length === 0) return;
-        if(confirm("確定要清空目前「暫存中」的所有點餐嗎？")) {
-            batchData = {};
-            updateBatchUI();
-            renderStudents();
-        }
+        if(isSending || Object.keys(batchData).length === 0) return;
+        if(confirm("確定要清空目前暫存嗎？")) { batchData = {}; updateBatchUI(); renderStudents(); }
     }
 
     function updateBatchUI() {
         var count = Object.keys(batchData).length;
-        var area = document.getElementById('batchArea');
-        if(count > 0) {
-            area.style.display = 'block';
-            document.getElementById('batchCount').innerText = `已選：${count} 人`;
-        } else {
-            area.style.display = 'none';
-        }
+        document.getElementById('batchArea').style.display = count > 0 ? 'block' : 'none';
+        document.getElementById('batchCount').innerText = isSending ? `正在傳送中...` : `已選：${count} 人`;
     }
 
-    function submitBatch() {
-        var count = Object.keys(batchData).length;
-        if(!confirm(`確定要統一送出這 ${count} 筆訂單嗎？`)) return;
+    // 🚀 強化的傳送邏輯：具備斷線保護
+    async function submitBatch() {
+        if(isSending) return;
+        var entries = Object.entries(batchData);
+        var total = entries.length;
+        if(!confirm(`確定送出這 ${total} 筆訂單？`)) return;
+
+        isSending = true;
+        var btn = document.getElementById('batchConfirm');
+        var mainText = document.getElementById('mainText');
+        btn.classList.add('sending');
 
         var d = new Date();
         var dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
         
-        for (let name in batchData) {
-            let info = batchData[name];
-            historyLog.push({ date: dateStr, cls: currentCls, name: name, item: info.item, price: info.price });
-            
-            let formData = new URLSearchParams({
-                date: dateStr,
-                cls: currentCls,
-                name: name,
-                item: info.item,
-                price: info.price
-            });
-            fetch(scriptUrl, { method: 'POST', mode: 'no-cors', body: formData });
+        // 循序傳送每一筆
+        for (let i = 0; i < entries.length; i++) {
+            let [name, info] = entries[i];
+            mainText.innerText = `⏳ 傳送中 ${i+1}/${total}`;
+
+            try {
+                let formData = new URLSearchParams({
+                    date: dateStr, cls: currentCls, name: name, item: info.item, price: info.price
+                });
+
+                // 超時設定 (10秒沒回應視為斷線)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+                await fetch(scriptUrl, { 
+                    method: 'POST', 
+                    mode: 'no-cors', 
+                    body: formData,
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+
+                // 傳送成功：存入歷史，從暫存刪除
+                historyLog.push({ date: dateStr, cls: currentCls, name: name, item: info.item, price: info.price });
+                delete batchData[name];
+                localStorage.setItem('cls_history', JSON.stringify(historyLog));
+
+            } catch (err) {
+                alert(`❌ 傳送到「${name}」時中斷！\n可能原因：網路不穩。\n已成功上傳 ${i} 筆，剩餘筆數已保留，請更換網路後再次嘗試。`);
+                break; 
+            }
         }
 
-        localStorage.setItem('cls_history', JSON.stringify(historyLog));
-        alert("🎉 資料已彙整並排隊上傳中！");
-        resetAndRender();
+        // 恢復 UI
+        isSending = false;
+        btn.classList.remove('sending');
+        mainText.innerText = `🚀 統一送出`;
+        updateBatchUI();
+        renderStudents();
+        
+        if(Object.keys(batchData).length === 0) alert("✅ 全部訂單上傳成功！");
     }
 
     function cancelSelect() { document.getElementById('foodSection').style.display = 'none'; }

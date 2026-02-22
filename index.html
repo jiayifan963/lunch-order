@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全校雲端點餐系統 - 2026 正式版</title>
+    <title>全校雲端點餐系統 - 晚餐版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        :root { --primary: #007bff; --success: #28a745; --danger: #dc3545; --bg: #f4f7f9; }
+        :root { --primary: #1a73e8; --success: #28a745; --danger: #dc3545; --bg: #f4f7f9; }
         * { touch-action: manipulation; box-sizing: border-box; }
         body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; }
         .container { width: 100%; max-width: 600px; margin: 0 auto; }
@@ -21,7 +21,7 @@
         .stu-btn small { font-size: 11px; margin-top: 4px; font-weight: bold; line-height: 1.2; display: block; }
         #foodSection { display: none; background: #fff; border: 2px solid var(--primary); border-radius: 15px; padding: 15px; position: fixed; bottom: 20px; left: 5%; width: 90%; z-index: 1000; box-shadow: 0 -5px 20px rgba(0,0,0,0.2); }
         .food-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
-        .food-btn { padding: 15px; border-radius: 10px; border: 1px solid #ddd; background: #f8f9fa; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .food-btn { padding: 15px; border-radius: 10px; border: 1px solid #ddd; background: #f8f9fa; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border: none; outline: none; }
         .batch-area { display: none; margin-top: 20px; }
         .footer-btns { display: flex; gap: 10px; }
         .confirm-card { background: var(--success); color: white; padding: 15px; border-radius: 15px; text-align: center; flex: 3; cursor: pointer; font-weight: bold; }
@@ -33,11 +33,20 @@
 
 <div class="container">
     <div class="card">
-        <h2 style="text-align:center; margin:0 0 10px 0;">🍱 全校點餐系統</h2>
+        <h2 style="text-align:center; margin:0 0 10px 0;">🍱 晚餐雲端點餐</h2>
         <div class="info-box"><div id="dateDisplay">載入中...</div></div>
         
         <select id="classSelect" onchange="resetAndRender()">
             <option value="">-- 請選擇年級 --</option>
+            <option value="老師">老師</option>
+            <option value="一年級">一年級</option>
+            <option value="二年級">二年級</option>
+            <option value="三年級">三年級</option>
+            <option value="四年級">四年級</option>
+            <option value="五年級">五年級</option>
+            <option value="六年級">六年級</option>
+            <option value="國中">國中</option>
+            <option value="其他">其他</option>
         </select>
 
         <div id="studentGrid" class="student-grid"></div>
@@ -45,8 +54,7 @@
         <div id="foodSection">
             <div id="foodTitle" style="font-weight:bold; margin-bottom:10px; text-align:center; color:var(--primary);"></div>
             <div id="foodOptions" class="food-grid"></div>
-            <button id="clearSingleBtn" onclick="clearSingleChoice()" style="width:100%; border:1px solid var(--danger); color:var(--danger); background:white; padding:10px; border-radius:10px; margin-top:10px; font-weight:bold; display:none;">🗑️ 清除選餐</button>
-            <button onclick="cancelSelect()" style="width:100%; border:none; background:none; color:#666; margin-top:10px;">✕ 關閉</button>
+            <button onclick="cancelSelect()" style="width:100%; border:none; background:none; color:#666; margin-top:15px; font-weight:bold;">✕ 關閉</button>
         </div>
 
         <div id="batchArea" class="batch-area">
@@ -66,12 +74,10 @@
 </div>
 
 <script>
-    // ======= 配置區 =======
     const scriptUrl = "https://script.google.com/macros/s/AKfycbzGFxtO24X6qwoOntCRVPNsjNUw3c2CEuAXemkGLILAFOWePd8XI1Ze1HUDDeTyLac/exec";
 
     var students = [
         {className:"老師",name:"張"},{className:"老師",name:"江"},{className:"老師",name:"瑜"},{className:"老師",name:"美"},{className:"老師",name:"華"},{className:"老師",name:"Vivian"},{className:"老師",name:"范"},
-        {className:"國中",name:"昊謙"},{className:"國中",name:"建億"},{className:"國中",name:"東霖"},{className:"國中",name:"志宇"},
         {className:"其他",name:"嘉美"},{className:"其他",name:"立峰"},
         {className:"一年級",name:"林鈺潔"},{className:"一年級",name:"趙偉哲"},{className:"一年級",name:"林袖駖"},{className:"一年級",name:"林宜靖"},{className:"一年級",name:"許思燦"},{className:"一年級",name:"許語芯"},{className:"一年級",name:"許心彤"},{className:"一年級",name:"雷喬勛"},{className:"一年級",name:"蘇薇心"},{className:"一年級",name:"吳妍熙"},{className:"一年級",name:"陳惠苡"},{className:"一年級",name:"陳佑陵"},{className:"一年級",name:"雷喬甯"},{className:"一年級",name:"吳謹彤"},{className:"一年級",name:"許愷峻"},{className:"一年級",name:"林庭翊"},
         {className:"二年級",name:"任彥輔"},{className:"二年級",name:"吳承恩"},{className:"二年級",name:"李依馨"},{className:"二年級",name:"阮妍芯"},{className:"二年級",name:"林子婼"},{className:"二年級",name:"林佩伶"},{className:"二年級",name:"林嘉豪"},{className:"二年級",name:"許昀紫"},{className:"二年級",name:"許芷媛"},{className:"二年級",name:"許倉源"},{className:"二年級",name:"許媛甄"},{className:"二年級",name:"許裴芸"},{className:"二年級",name:"程宥熙"},{className:"二年級",name:"鄭芯喬"},
@@ -81,12 +87,13 @@
         {className:"六年級",name:"吳嘉怡"},{className:"六年級",name:"周苡婷"},{className:"六年級",name:"林辰鑫"},{className:"六年級",name:"林夏彤"},{className:"六年級",name:"林雅芃"},{className:"六年級",name:"許岒澴"},{className:"六年級",name:"許郡宜"},{className:"六年級",name:"許閔哲"},{className:"六年級",name:"黃宥心"},{className:"六年級",name:"雷棨鋐"},{className:"六年級",name:"謝文硯"}
     ];
 
+    // 晚餐菜單規則
     var menu = {
-        1: [{n:"炒麵＋湯",p:70}, {n:"滷肉飯＋湯",p:70}, {n:"米糕＋湯",p:70}],
-        2: [{n:"餐盒",p:70}],
-        3: [{n:"滷肉飯",p:70}, {n:"乾關東煮",p:70}, {n:"湯關東煮",p:70}],
-        4: [{n:"餐盒",p:70}, {n:"麵",p:70}, {n:"水餃",p:70}],
-        5: [{n:"鍋燒麵",p:70}, {n:"肉醬麵",p:70}, {n:"蛋包飯",p:70}]
+        1: [{n:"餐盒", p:70}], 
+        2: [], // 週二不訂餐
+        3: [{n:"滷肉飯", p:70}, {n:"乾關東煮", p:70}, {n:"湯關東煮", p:70}], 
+        4: [{n:"餐盒", p:70}], 
+        5: [{n:"餐盒", p:70}]
     };
 
     var historyLog = JSON.parse(localStorage.getItem('cls_history')) || [];
@@ -98,25 +105,14 @@
     window.onload = function() {
         var d = new Date();
         var todayStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
-        
-        // --- 跨日自動清理邏輯 ---
         var lastCheckDate = localStorage.getItem('last_service_date');
         if (lastCheckDate !== todayStr) {
             localStorage.removeItem('cls_history'); 
             localStorage.setItem('last_service_date', todayStr);
             historyLog = []; 
         }
-
-        // 更新網頁顯示日期
         var days = ["日","一","二","三","四","五","六"];
         document.getElementById('dateDisplay').innerText = `📅 ${todayStr} (週${days[d.getDay()]})`;
-        
-        // 初始化年級選單
-        var sel = document.getElementById('classSelect');
-        ["老師", "一年級", "二年級", "三年級", "四年級", "五年級", "六年級", "國中", "其他"].forEach(c => { 
-            sel.add(new Option(c, c)); 
-        });
-
         resetAndRender();
     };
 
@@ -145,7 +141,7 @@
             div.innerHTML = `<b>${stu.name}</b>${statusHtml}`;
             div.onclick = function() {
                 if(isSending) return;
-                if(uploaded && !confirm(`「${stu.name}」已上傳，要刪除本地紀錄重選嗎？`)) return;
+                if(uploaded && !confirm(`「${stu.name}」已上傳，要刪除紀錄重選嗎？`)) return;
                 if(uploaded) historyLog = historyLog.filter(h => h.name !== stu.name || h.cls !== stu.className);
                 currentStu = stu.name;
                 openFoodMenu();
@@ -155,19 +151,22 @@
     }
 
     function openFoodMenu() {
+        var d = new Date();
+        var day = d.getDay();
         const urlParams = new URLSearchParams(window.location.search);
         const isTest = urlParams.get('test') === '1';
-        var day = new Date().getDay();
-        
-        if (!isTest && (day === 0 || day === 6)) { alert("週末不供餐"); return; }
 
-        var testDay = (day === 0 || day === 6) ? 1 : day; // 週末測試模式預設顯示週一菜單
-        document.getElementById('foodTitle').innerText = `幫「${currentStu}」選餐`;
+        // 週末判定
+        if (!isTest && (day === 0 || day === 6)) { alert("週末不供餐"); return; }
+        // 週二判定
+        if (!isTest && day === 2) { alert("週二固定不訂餐"); return; }
+
+        var currentDay = (day === 0 || day === 6) ? 1 : day; 
+        document.getElementById('foodTitle').innerText = `幫「${currentStu}」選晚餐`;
         var opts = document.getElementById('foodOptions');
         opts.innerHTML = '';
-        document.getElementById('clearSingleBtn').style.display = batchData[currentStu] ? 'block' : 'none';
 
-        var options = [...menu[testDay], {n:"不訂餐", p:0}];
+        var options = [...(menu[currentDay] || []), {n:"不訂餐", p:0}];
         options.forEach(food => {
             var btn = document.createElement('button');
             btn.className = 'food-btn';
@@ -185,7 +184,7 @@
     async function submitBatch() {
         if(isSending) return;
         var entries = Object.entries(batchData);
-        if(!entries.length || !confirm(`確定送出這 ${entries.length} 筆訂單到雲端？`)) return;
+        if(!entries.length || !confirm(`確定送出 ${entries.length} 筆晚餐訂單？`)) return;
 
         isSending = true;
         var btn = document.getElementById('batchConfirm');
@@ -197,7 +196,7 @@
         
         for (let i = 0; i < entries.length; i++) {
             let [name, info] = entries[i];
-            mainText.innerText = `⏳ 正在傳送 ${i+1}/${entries.length}`;
+            mainText.innerText = `⏳ 傳送中 ${i+1}/${entries.length}`;
 
             let finalUrl = scriptUrl + 
                 "?date=" + encodeURIComponent(dateStr) +
@@ -222,11 +221,10 @@
         btn.classList.remove('sending');
         mainText.innerText = `🚀 統一送出`;
         updateBatchUI(); renderStudents();
-        alert("✅ 全部訂單已完成上傳步驟！請檢查雲端試算表。");
+        alert("✅ 晚餐訂單上傳成功！");
     }
 
-    function clearSingleChoice() { delete batchData[currentStu]; updateBatchUI(); renderStudents(); document.getElementById('foodSection').style.display = 'none'; }
-    function resetCurrentBatch() { if(!isSending && confirm("確定重設目前暫存的點餐嗎？")) { batchData = {}; updateBatchUI(); renderStudents(); } }
+    function resetCurrentBatch() { if(!isSending && confirm("確定重設暫存嗎？")) { batchData = {}; updateBatchUI(); renderStudents(); } }
     function updateBatchUI() { 
         var c = Object.keys(batchData).length;
         document.getElementById('batchArea').style.display = c > 0 ? 'block' : 'none';
@@ -234,13 +232,4 @@
     }
     function cancelSelect() { document.getElementById('foodSection').style.display = 'none'; }
     function exportToExcel() {
-        var d = [["日期", "類別", "姓名", "餐點", "金額"]];
-        historyLog.forEach(o => d.push([o.date, o.cls, o.name, o.item, o.price]));
-        var ws = XLSX.utils.aoa_to_sheet(d);
-        var wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "報表");
-        XLSX.writeFile(wb, "校園點餐_對帳表.xlsx");
-    }
-</script>
-</body>
-</html>
+        var d =

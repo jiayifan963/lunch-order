@@ -73,7 +73,7 @@
 </div>
 
 <script>
-    const scriptUrl = "https://script.google.com/macros/s/AKfycbzGFxtO24X6qwoOntCRVPNsjNUw3c2CEuAXemkGLILAFOWePd8XI1Ze1HUDDeTyLac/exec";
+    const webAppUrl = "https://script.google.com/macros/s/AKfycbzj5oVJVqNH7WEqirF--tWVLxofs6IuYzRQ1r5UG25-EMenJKSdmab-JEumdqEdQCbkkw/exec"; // 統一連到您最新的 Apps Script 網址
 
     var students = [
         {className:"老師",name:"張"},{className:"老師",name:"江"},{className:"老師",name:"瑜"},{className:"老師",name:"美"},{className:"老師",name:"華"},{className:"老師",name:"Vivian"},{className:"老師",name:"范"},
@@ -86,12 +86,13 @@
         {className:"六年級",name:"吳嘉怡"},{className:"六年級",name:"周苡婷"},{className:"六年級",name:"林辰鑫"},{className:"六年級",name:"林夏彤"},{className:"六年級",name:"林雅芃"},{className:"六年級",name:"許岒澴"},{className:"六年級",name:"許郡宜"},{className:"六年級",name:"許閔哲"},{className:"六年級",name:"黃宥心"},{className:"六年級",name:"雷棨鋐"},{className:"六年級",name:"謝文硯"}
     ];
 
+    // 已修復週三語法錯誤
     var menu = {
-        1: [{n:"餐盒", p:70}, {n:"餐盒（加飯）", p:70}], // 週一
-        2: [], // 週二
-        3: [{n:"水餃", p:70}, // 週三
-        4: [{n:"餐盒", p:70}, {n:"餐盒（加飯）", p:70}], // 週四
-        5: [{n:"餐盒", p:70}, {n:"餐盒（加飯）", p:70}]  // 週五
+        1: [{n:"餐盒", p:70}, {n:"餐盒（加飯）", p:70}], 
+        2: [], 
+        3: [{n:"水餃", p:70}], 
+        4: [{n:"餐盒", p:70}, {n:"餐盒（加飯）", p:70}], 
+        5: [{n:"餐盒", p:70}, {n:"餐盒（加飯）", p:70}]  
     };
 
     var historyLog = JSON.parse(localStorage.getItem('cls_history')) || [];
@@ -157,8 +158,10 @@
         var urlParams = new URLSearchParams(window.location.search);
         var isTest = urlParams.get('test') === '1';
 
-        if (!isTest && (day === 0 || day === 6)) { alert("週末不供餐"); return; }
-        if (!isTest && day === 2) { alert("週二固定不訂餐"); return; }
+        if (!isTest) {
+            if (day === 0 || day === 6) { alert("週末不供餐"); return; }
+            if (day === 2) { alert("週二固定不訂餐"); return; }
+        }
 
         var currentDay = (day === 0 || day === 6) ? 1 : day; 
         document.getElementById('foodTitle').innerText = "幫「" + currentStu + "」選晚餐";
@@ -199,7 +202,8 @@
             var info = batchData[name];
             mainText.innerText = "⏳ 傳送中 " + (i + 1) + "/" + entries.length;
 
-            var finalUrl = scriptUrl + 
+            // 修正為讀取外層設定好的 webAppUrl 變數
+            var finalUrl = webAppUrl + 
                 "?date=" + encodeURIComponent(dateStr) +
                 "&cls=" + encodeURIComponent(currentCls) +
                 "&name=" + encodeURIComponent(name) +

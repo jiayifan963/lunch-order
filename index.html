@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全校雲端點餐系統 - 晚餐版</title>
+    <title>全校雲端點餐系統 - 暑假午餐版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root { --primary: #1a73e8; --success: #28a745; --danger: #dc3545; --bg: #f4f7f9; }
@@ -33,13 +33,12 @@
 
 <div class="container">
     <div class="card">
-        <h2 style="text-align:center; margin:0 0 10px 0;">🍱 晚餐雲端點餐</h2>
+        <h2 style="text-align:center; margin:0 0 10px 0;">🍱 暑假午餐雲端點餐</h2>
         <div class="info-box"><div id="dateDisplay">正在讀取日期...</div></div>
         
         <select id="classSelect" onchange="resetAndRender()">
             <option value="">-- 請選擇年級 --</option>
             <option value="老師">老師</option>
-            <option value="一年級">一年級</option>
             <option value="二年級">二年級</option>
             <option value="三年級">三年級</option>
             <option value="四年級">四年級</option>
@@ -76,22 +75,23 @@
     // ⚠️ 請務必確認這裡的網址是妳最新部署出來的 Web App 網址 ⚠️
     const webAppUrl = "https://script.google.com/macros/s/AKfycbzGFxtO24X6qwoOntCRVPNsjNUw3c2CEuAXemkGLILAFOWePd8XI1Ze1HUDDeTyLac/exec";
 
+    // 名單全面升級，原六年級已刪除，其他類別已新增 4 位新名單
     var students = [
         {className:"老師",name:"張"},{className:"老師",name:"江"},{className:"老師",name:"瑜"},{className:"老師",name:"美"},{className:"老師",name:"華"},{className:"老師",name:"Vivian"},{className:"老師",name:"范"},
-        {className:"其他",name:"嘉美"},{className:"其他",name:"立峰"},
-        {className:"一年級",name:"林鈺潔"},{className:"一年級",name:"趙偉哲"},{className:"一年級",name:"林袖駖"},{className:"一年級",name:"林宜靖"},{className:"一年級",name:"許思燦"},{className:"一年級",name:"許語芯"},{className:"一年級",name:"許心彤"},{className:"一年級",name:"雷喬勛"},{className:"一年級",name:"蘇薇心"},{className:"一年級",name:"吳妍熙"},{className:"一年級",name:"陳惠苡"},{className:"一年級",name:"陳佑陵"},{className:"一年級",name:"雷喬甯"},{className:"一年級",name:"吳謹彤"},{className:"一年級",name:"許愷峻"},{className:"一年級",name:"林庭翊"},
-        {className:"二年級",name:"任彥輔"},{className:"二年級",name:"吳承恩"},{className:"二年級",name:"李依馨"},{className:"二年級",name:"阮妍芯"},{className:"二年級",name:"林子婼"},{className:"二年級",name:"林佩伶"},{className:"二年級",name:"林嘉豪"},{className:"二年級",name:"許昀紫"},{className:"二年級",name:"許芷媛"},{className:"二年級",name:"許倉源"},{className:"二年級",name:"許媛甄"},{className:"二年級",name:"許裴芸"},{className:"二年級",name:"程宥熙"},{className:"二年級",name:"鄭芯喬"},
-        {className:"三年級",name:"才琇羽"},{className:"三年級",name:"王以琳"},{className:"三年級",name:"江昕瞳"},{className:"三年級",name:"吳晨晞"},{className:"三年級",name:"林宜薇"},{className:"三年級",name:"林欣毅"},{className:"三年級",name:"林恩睿"},{className:"三年級",name:"林翊城"},{className:"三年級",name:"林樂"},{className:"三年級",name:"許阡函"},{className:"三年級",name:"許芷嫣"},{className:"三年級",name:"許峮銧"},{className:"三年級",name:"許峻瑋"},{className:"三年級",name:"黃筠婷"},{className:"三年級",name:"雷允揚"},{className:"三年級",name:"陳宥政"},{className:"三年級",name:"趙宥程"},
-        {className:"四年級",name:"周安佑"},{className:"四年級",name:"林禾畯"},{className:"四年級",name:"林靖宸"},{className:"四年級",name:"姜彥辰"},{className:"四年級",name:"許思晨"},{className:"四年級",name:"許柏翔"},{className:"四年級",name:"許珉豪"},{className:"四年級",name:"許峮萌"},{className:"四年級",name:"許惟智"},{className:"四年級",name:"許喬愉"},{className:"四年級",name:"許詠鈞"},{className:"四年級",name:"許愷祐"},{className:"四年級",name:"許澤安"},{className:"四年級",name:"陳楷翔"},{className:"四年級",name:"游淨淳"},{className:"四年級",name:"睿恩"},
-        {className:"五年級",name:"吳秉叡"},{className:"五年級",name:"林子祺"},{className:"五年級",name:"林安平"},{className:"五年級",name:"林芮安"},{className:"五年級",name:"林勁丞"},{className:"五年級",name:"林科延"},{className:"五年級",name:"林祐安"},{className:"五年級",name:"洪淮銨"},{className:"五年級",name:"許昕瑜"},{className:"五年級",name:"許雅鈊"},{className:"五年級",name:"許維琳"},{className:"五年級",name:"黃羽萱"},{className:"五年級",name:"鄭凱宏"},{className:"五年級",name:"謝文軒"},{className:"五年級",name:"蘇薇安"},{className:"五年級",name:"許婉琳"},
-        {className:"六年級",name:"吳嘉怡"},{className:"六年級",name:"周苡婷"},{className:"六年級",name:"林辰鑫"},{className:"六年級",name:"林夏彤"},{className:"六年級",name:"林雅芃"},{className:"六年級",name:"許岒澴"},{className:"六年級",name:"許郡宜"},{className:"六年級",name:"許閔哲"},{className:"六年級",name:"黃宥心"},{className:"六年級",name:"雷棨鋐"},{className:"六年級",name:"謝文硯"}
+        {className:"其他",name:"嘉美"},{className:"其他",name:"立峰"},{className:"其他",name:"昊謙"},{className:"其他",name:"建億"},{className:"其他",name:"彥樺"},{className:"其他",name:"棨紘"},
+        {className:"二年級",name:"林鈺潔"},{className:"二年級",name:"趙偉哲"},{className:"二年級",name:"林袖駖"},{className:"二年級",name:"林宜靖"},{className:"二年級",name:"許思燦"},{className:"二年級",name:"許語芯"},{className:"二年級",name:"許心彤"},{className:"二年級",name:"雷喬勛"},{className:"二年級",name:"蘇薇心"},{className:"二年級",name:"吳妍熙"},{className:"二年級",name:"陳惠苡"},{className:"二年級",name:"陳佑陵"},{className:"二年級",name:"雷喬甯"},{className:"二年級",name:"吳謹彤"},{className:"二年級",name:"許愷峻"},{className:"二年級",name:"林庭翊"},
+        {className:"三年級",name:"任彥輔"},{className:"三年級",name:"吳承恩"},{className:"三年級",name:"李依馨"},{className:"三年級",name:"阮妍芯"},{className:"三年級",name:"林子婼"},{className:"三年級",name:"林佩伶"},{className:"三年級",name:"林嘉豪"},{className:"三年級",name:"許昀紫"},{className:"三年級",name:"許芷媛"},{className:"三年級",name:"許倉源"},{className:"三年級",name:"許媛甄"},{className:"三年級",name:"許裴芸"},{className:"三年級",name:"程宥熙"},{className:"三年級",name:"鄭芯喬"},
+        {className:"四年級",name:"才琇羽"},{className:"四年級",name:"王以琳"},{className:"四年級",name:"江昕瞳"},{className:"四年級",name:"吳晨晞"},{className:"四年級",name:"林宜薇"},{className:"四年級",name:"林欣毅"},{className:"四年級",name:"林恩睿"},{className:"四年級",name:"林翊城"},{className:"四年級",name:"林樂"},{className:"四年級",name:"許阡函"},{className:"四年級",name:"許芷嫣"},{className:"四年級",name:"許峮銧"},{className:"四年級",name:"許峻瑋"},{className:"四年級",name:"黃筠婷"},{className:"四年級",name:"雷允揚"},{className:"四年級",name:"陳宥政"},{className:"四年級",name:"趙宥程"},
+        {className:"五年級",name:"周安佑"},{className:"五年級",name:"林禾畯"},{className:"五年級",name:"林靖宸"},{className:"五年級",name:"姜彥辰"},{className:"五年級",name:"許思晨"},{className:"五年級",name:"許柏翔"},{className:"五年級",name:"許珉豪"},{className:"五年級",name:"許峮萌"},{className:"五年級",name:"許惟智"},{className:"五年級",name:"許喬愉"},{className:"五年級",name:"許詠鈞"},{className:"五年級",name:"許愷祐"},{className:"五年級",name:"許澤安"},{className:"五年級",name:"陳楷翔"},{className:"五年級",name:"游淨淳"},{className:"五年級",name:"睿恩"},
+        {className:"六年級",name:"吳秉叡"},{className:"六年級",name:"林子祺"},{className:"六年級",name:"林安平"},{className:"六年級",name:"林芮安"},{className:"六年級",name:"林勁丞"},{className:"六年級",name:"林科延"},{className:"六年級",name:"林祐安"},{className:"六年級",name:"洪淮銨"},{className:"六年級",name:"許昕瑜"},{className:"六年級",name:"許雅鈊"},{className:"六年級",name:"許維琳"},{className:"六年級",name:"黃羽萱"},{className:"六年級",name:"鄭凱宏"},{className:"六年級",name:"謝文軒"},{className:"六年級",name:"蘇薇安"},{className:"六年級",name:"許婉琳"}
     ];
 
+    // 暑假午餐菜單設定 (1=週一, 2=週二, 3=週三, 4=週四, 5=週五)
     var menu = {
         1: [{n:"餐盒", p:70}, {n:"餐盒（加飯）", p:70}], 
-        2: [], 
+        2: [{n:"餐盒", p:70}, {n:"餐盒（加飯）", p:70}], 
         3: [{n:"水餃", p:70}], 
-        4: [{n:"餐盒", p:70}, {n:"餐盒（加飯）", p:70}], 
+        4: [{n:"炒麵+綜合湯", p:70}, {n:"滷肉飯+綜合湯", p:70}], 
         5: [{n:"餐盒", p:70}, {n:"餐盒（加飯）", p:70}]  
     };
 
@@ -159,12 +159,11 @@
         var isTest = urlParams.get('test') === '1';
 
         if (!isTest) {
-            if (day === 0 || day === 6) { alert("週末不供餐"); return; }
-            if (day === 2) { alert("週二固定不訂餐"); return; }
+            if (day === 0 || day === 6) { alert("週末不供餐喔！"); return; }
         }
 
         var currentDay = (day === 0 || day === 6) ? 1 : day; 
-        document.getElementById('foodTitle').innerText = "幫「" + currentStu + "」選晚餐";
+        document.getElementById('foodTitle').innerText = "幫「" + currentStu + "」選午餐";
         var opts = document.getElementById('foodOptions');
         opts.innerHTML = '';
 
@@ -184,11 +183,10 @@
         document.getElementById('foodSection').style.display = 'block';
     }
 
-    // 🚀 已將此處核心修改為穩定的 fetch() 模式，避開跨網域圖片安全性封鎖
     async function submitBatch() {
         if(isSending) return;
         var entries = Object.keys(batchData);
-        if(!entries.length || !confirm("確定送出 " + entries.length + " 筆晚餐訂單？")) return;
+        if(!entries.length || !confirm("確定送出 " + entries.length + " 筆午餐訂單？")) return;
 
         isSending = true;
         var btn = document.getElementById('batchConfirm');
@@ -210,7 +208,6 @@
                 "&item=" + encodeURIComponent(info.item) +
                 "&price=" + encodeURIComponent(info.price);
 
-            // 🛠️ 改用 fetch + no-cors 安全模式強制過關
             await fetch(finalUrl, { method: "GET", mode: "no-cors" })
                 .then(function() {
                     historyLog.push({ date: dateStr, cls: currentCls, name: name, item: info.item, price: info.price });
@@ -228,7 +225,7 @@
         mainText.innerText = "🚀 統一送出";
         updateBatchUI(); 
         renderStudents();
-        alert("✅ 晚餐訂單已成功上傳試算表！");
+        alert("✅ 暑假午餐訂單已成功上傳試算表！");
     }
 
     function resetCurrentBatch() { 
@@ -239,7 +236,6 @@
         } 
     }
 
-    // 五年級多增加了一筆洪淮銨，此處優化過濾防止重複顯示錯誤
     function updateBatchUI() { 
         var c = Object.keys(batchData).length;
         document.getElementById('batchArea').style.display = c > 0 ? 'block' : 'none';
@@ -253,8 +249,8 @@
         historyLog.forEach(function(o) { d.push([o.date, o.cls, o.name, o.item, o.price]); });
         var ws = XLSX.utils.aoa_to_sheet(d);
         var wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "晚餐報表");
-        XLSX.writeFile(wb, "晚餐對帳表.xlsx");
+        XLSX.utils.book_append_sheet(wb, ws, "午餐報表");
+        XLSX.writeFile(wb, "暑假午餐對帳表.xlsx");
     }
 </script>
 </body>
